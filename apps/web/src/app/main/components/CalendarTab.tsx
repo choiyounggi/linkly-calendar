@@ -53,16 +53,19 @@ export default function CalendarTab() {
 
   const handleClose = () => {
     setIsModalOpen(false);
+    setSelectedDate(null);
   };
 
   const handleCreate = (date: string, event: EventFormData) => {
     setEventsByDate((prev) => ({ ...prev, [date]: event }));
     setIsModalOpen(false);
+    setSelectedDate(null);
   };
 
   const handleUpdate = (date: string, event: EventFormData) => {
     setEventsByDate((prev) => ({ ...prev, [date]: event }));
     setIsModalOpen(false);
+    setSelectedDate(null);
   };
 
   const handleDelete = (date: string) => {
@@ -71,6 +74,7 @@ export default function CalendarTab() {
       return rest;
     });
     setIsModalOpen(false);
+    setSelectedDate(null);
   };
 
   return (

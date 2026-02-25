@@ -39,14 +39,19 @@ export default function EventModal({
   const [formData, setFormData] = useState<EventFormData>(emptyEvent);
   const [originalData, setOriginalData] = useState<EventFormData>(emptyEvent);
 
+  const isActive = isOpen && Boolean(selectedDate);
+  const selectedDateValue = selectedDate ?? "";
+
   useEffect(() => {
-    if (!isOpen || !selectedDate) {
+    if (!isActive) {
+      setFormData(emptyEvent);
+      setOriginalData(emptyEvent);
       return;
     }
     const base = existingEvent ?? emptyEvent;
     setFormData({ ...base });
     setOriginalData({ ...base });
-  }, [isOpen, selectedDate, existingEvent]);
+  }, [isActive, existingEvent]);
 
   const isTitleValid = formData.title.trim().length > 0;
   const isDirty = useMemo(() => {
@@ -61,7 +66,7 @@ export default function EventModal({
     );
   }, [existingEvent, formData, originalData]);
 
-  if (!isOpen || !selectedDate) {
+  if (!isActive) {
     return null;
   }
 
@@ -73,18 +78,18 @@ export default function EventModal({
     if (!isTitleValid) {
       return;
     }
-    onCreate(selectedDate, { ...formData, title: formData.title.trim() });
+    onCreate(selectedDateValue, { ...formData, title: formData.title.trim() });
   };
 
   const handleUpdate = () => {
     if (!isTitleValid || !isDirty) {
       return;
     }
-    onUpdate(selectedDate, { ...formData, title: formData.title.trim() });
+    onUpdate(selectedDateValue, { ...formData, title: formData.title.trim() });
   };
 
   const handleDelete = () => {
-    onDelete(selectedDate);
+    onDelete(selectedDateValue);
   };
 
   return (
@@ -92,7 +97,7 @@ export default function EventModal({
       <div className={styles.modal}>
         <header className={styles.header}>
           <h3 className={styles.title}>선택한 날짜</h3>
-          <p className={styles.date}>{selectedDate}</p>
+          <p className={styles.date}>{selectedDateValue}</p>
         </header>
         <div className={styles.body}>
           <label className={styles.field}>
