@@ -67,6 +67,18 @@ pnpm install
 pnpm dev
 ```
 
+### Local Services (Docker)
+
+```bash
+cp .env.example .env
+
+docker compose up -d
+```
+
+- Postgres: `localhost:5432`
+- Redis: `localhost:6379`
+- Default DB: `linkly` (user: `linkly`, password: `linkly_local_password`)
+
 ### Build
 
 ```bash
