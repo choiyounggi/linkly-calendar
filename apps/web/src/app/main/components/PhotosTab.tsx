@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useReducer, useRef, type ChangeEvent } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type ChangeEvent } from "react";
 import styles from "./PhotosTab.module.css";
 
 const baseImages = ["/logo.png", "/avatar-female.png", "/avatar-male.png"];
+const INITIAL_VISIBLE = 36;
+const PAGE_SIZE = 24;
 
 type PhotoItem = {
   id: number;
@@ -111,13 +113,63 @@ export default function PhotosTab() {
   const [state, dispatch] = useReducer(photosReducer, initialImages, initializeState);
   const { images, activeImage, selectMode, selectedIds } = state;
   const hasSelection = selectedIds.size > 0;
+  const [visibleCount, setVisibleCount] = useState(() =>
+    Math.min(INITIAL_VISIBLE, initialImages.length)
+  );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const nextIdRef = useRef(initialImages.length + 1);
   const imagesRef = useRef(images);
+  const galleryRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const root = galleryRef.current;
+    if (!sentinel || !root) {
+      return;
+    }
+
+    let clearLoadingTimer: number | null = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) {
+          return;
+        }
+        setVisibleCount((current) => {
+          if (current >= images.length) {
+            return current;
+          }
+          setIsLoadingMore(true);
+          if (clearLoadingTimer) {
+            window.clearTimeout(clearLoadingTimer);
+          }
+          clearLoadingTimer = window.setTimeout(() => {
+            setIsLoadingMore(false);
+          }, 160);
+          return Math.min(current + PAGE_SIZE, images.length);
+        });
+      },
+      {
+        root,
+        rootMargin: "120px",
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+      if (clearLoadingTimer) {
+        window.clearTimeout(clearLoadingTimer);
+      }
+    };
+  }, [images.length]);
 
   useEffect(() => {
     return () => {
@@ -163,6 +215,10 @@ export default function PhotosTab() {
     dispatch({ type: "DELETE_SELECTED" });
     urlsToRevoke.forEach((src) => URL.revokeObjectURL(src));
   };
+
+  const clampedVisibleCount = Math.min(visibleCount, images.length);
+  const visibleImages = images.slice(0, clampedVisibleCount);
+  const hasMoreImages = clampedVisibleCount < images.length;
 
   return (
     <div className={styles.container}>
@@ -211,9 +267,9 @@ export default function PhotosTab() {
         tabIndex={-1}
       />
 
-      <div className={styles.gallery}>
+      <div className={styles.gallery} ref={galleryRef}>
         <div className={styles.grid}>
-          {images.map((image) => {
+          {visibleImages.map((image) => {
             const isSelected = selectedIds.has(image.id);
             return (
               <button
@@ -250,6 +306,12 @@ export default function PhotosTab() {
             );
           })}
         </div>
+        <div ref={sentinelRef} className={styles.sentinel} aria-hidden />
+        {hasMoreImages && (
+          <div className={styles.loading} aria-live="polite">
+            {isLoadingMore ? "불러오는 중…" : "스크롤하면 더 보기"}
+          </div>
+        )}
       </div>
 
       {activeImage && (
