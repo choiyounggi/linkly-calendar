@@ -37,30 +37,56 @@ export default function EventModal({
   onUpdate,
   onDelete,
 }: EventModalProps) {
-  const [formData, setFormData] = useState<EventFormData>(emptyEvent);
-  const [originalData, setOriginalData] = useState<EventFormData>(emptyEvent);
+  const isActive = isOpen && Boolean(selectedDate);
+  const selectedDateValue = selectedDate ?? "";
+
+  if (!isActive) {
+    return null;
+  }
+
+  const contentKey = JSON.stringify({
+    selectedDateValue,
+    existingEvent,
+  });
+
+  return (
+    <EventModalContent
+      key={contentKey}
+      selectedDateValue={selectedDateValue}
+      existingEvent={existingEvent}
+      onClose={onClose}
+      onCreate={onCreate}
+      onUpdate={onUpdate}
+      onDelete={onDelete}
+    />
+  );
+}
+
+interface EventModalContentProps {
+  selectedDateValue: string;
+  existingEvent: EventFormData | null;
+  onClose: () => void;
+  onCreate: (date: string, event: EventFormData) => void;
+  onUpdate: (date: string, event: EventFormData) => void;
+  onDelete: (date: string) => void;
+}
+
+function EventModalContent({
+  selectedDateValue,
+  existingEvent,
+  onClose,
+  onCreate,
+  onUpdate,
+  onDelete,
+}: EventModalContentProps) {
+  const baseEvent = existingEvent ?? emptyEvent;
+  const [formData, setFormData] = useState<EventFormData>(() => ({ ...baseEvent }));
+  const [originalData] = useState<EventFormData>(() => ({ ...baseEvent }));
   const titleId = useId();
   const descriptionId = useId();
   const titleInputRef = useRef<HTMLInputElement | null>(null);
 
-  const isActive = isOpen && Boolean(selectedDate);
-  const selectedDateValue = selectedDate ?? "";
-
   useEffect(() => {
-    if (!isActive) {
-      setFormData(emptyEvent);
-      setOriginalData(emptyEvent);
-      return;
-    }
-    const base = existingEvent ?? emptyEvent;
-    setFormData({ ...base });
-    setOriginalData({ ...base });
-  }, [isActive, existingEvent]);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
     titleInputRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -71,7 +97,7 @@ export default function EventModal({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isActive, onClose]);
+  }, [onClose]);
 
   const isTitleValid = formData.title.trim().length > 0;
   const isDirty = useMemo(() => {
@@ -85,10 +111,6 @@ export default function EventModal({
       formData.details !== originalData.details
     );
   }, [existingEvent, formData, originalData]);
-
-  if (!isActive) {
-    return null;
-  }
 
   const handleChange = (key: keyof EventFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
