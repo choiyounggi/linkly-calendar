@@ -10,6 +10,7 @@ out
 
 # NestJS / build outputs
 dist
+build
 
 # Turbo
 .turbo
@@ -17,8 +18,19 @@ dist
 # testing
 /coverage
 
+# IDE
+.vscode
+.idea
+*.iml
+
 # Misc
 .DS_Store
 *.log
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Env
 .env
+.env.local
 .env.*.local

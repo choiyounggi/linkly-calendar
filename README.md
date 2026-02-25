@@ -1,6 +1,30 @@
 # Linkly Calendar
 
-AI-driven calendar project for smart scheduling and management.
+A **Couples Calendar Web App** designed for both **mobile and desktop**, helping partners stay connected with shared schedules and memories.
+
+## 💡 Concept
+A shared calendar experience for couples to manage day‑to‑day plans, celebrate milestones, and keep in touch — all in one place.
+
+## ✨ Key Features
+- **Calendar**: Shared schedules and events
+- **Anniversary**: Track important dates and milestones
+- **Chat**: Lightweight messaging for quick updates
+- **Gallery**: Shared memories and photos
+- **(Future) AI**: Smart suggestions and insights
+
+## 🎨 Design Direction
+- **Clean & Simple** UI
+- **Bright Yellow Theme** 🍌
+
+## 🧱 Architecture
+- **Monorepo**: Turborepo
+- **Web**: Next.js
+- **API**: NestJS
+
+## ✅ Current Status
+- **Login UI implemented** (social auth shells)
+
+---
 
 ## 🛠 Tech Stack
 
