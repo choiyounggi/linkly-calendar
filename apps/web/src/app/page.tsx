@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -18,15 +19,15 @@ export default function Home() {
           <p className={styles.subtitle}>Couples calendar for your shared moments</p>
         </div>
         <div className={styles.buttons}>
-          <button type="button" className={`${styles.button} ${styles.kakao}`}>
+          <Link href="/main" className={`${styles.button} ${styles.kakao}`}>
             카카오 로그인
-          </button>
-          <button type="button" className={`${styles.button} ${styles.google}`}>
+          </Link>
+          <Link href="/main" className={`${styles.button} ${styles.google}`}>
             구글 로그인
-          </button>
-          <button type="button" className={`${styles.button} ${styles.naver}`}>
+          </Link>
+          <Link href="/main" className={`${styles.button} ${styles.naver}`}>
             네이버 로그인
-          </button>
+          </Link>
         </div>
       </main>
     </div>

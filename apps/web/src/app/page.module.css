@@ -60,6 +60,10 @@
   font-weight: 600;
   border: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   transition: transform 0.1s ease, box-shadow 0.2s ease;
 }
 
