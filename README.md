@@ -33,6 +33,15 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
 - **Apps**:
   - `web`: [Next.js](https://nextjs.org/) (Frontend)
   - `api`: [NestJS](https://nestjs.com/) (Backend)
+- **Backend (NestJS)**:
+  - **Queue & Cache**: `@nestjs/bullmq`, `bullmq`, `ioredis` (For schedule notifications, chat)
+  - **Integration**: `@googleapis/calendar` (Google Calendar)
+  - **ORM**: `prisma`, `@prisma/client`
+  - **Validation**: `zod` (Shared validation between FE/BE)
+  - **Auth**: `passport`, `@nestjs/passport` (Optional/Custom OAuth implementation)
+- **Frontend (Next.js)**:
+  - **Calendar UI**: `@fullcalendar/*` OR `react-big-calendar` (Selection pending based on UX)
+  - **Forms**: `react-hook-form`, `zod`
 - **Packages**:
   - `@linkly/ui`: Shared UI components
   - `@linkly/config`: Shared configuration (TypeScript, ESLint, etc.)
