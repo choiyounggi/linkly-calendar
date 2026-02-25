@@ -48,10 +48,6 @@ export default function EventModal({
     setOriginalData({ ...base });
   }, [isOpen, selectedDate, existingEvent]);
 
-  if (!isOpen || !selectedDate) {
-    return null;
-  }
-
   const isTitleValid = formData.title.trim().length > 0;
   const isDirty = useMemo(() => {
     if (!existingEvent) {
@@ -64,6 +60,10 @@ export default function EventModal({
       formData.details !== originalData.details
     );
   }, [existingEvent, formData, originalData]);
+
+  if (!isOpen || !selectedDate) {
+    return null;
+  }
 
   const handleChange = (key: keyof EventFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
