@@ -63,33 +63,55 @@
   font-size: 13px;
   background: #fafafa;
   color: #1c1c1c;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: #ffd400;
+  box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.2);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #b0b0b0;
+}
+
+.helper {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8a8a8a;
 }
 
 .footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  padding-top: 4px;
 }
 
 .closeButton,
 .primaryButton,
 .dangerButton {
   border: none;
-  padding: 8px 16px;
+  padding: 9px 18px;
   border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .closeButton {
-  background: #ffd400;
-  color: #1c1c1c;
+  background: #f2f2f2;
+  color: #4a4a4a;
 }
 
 .primaryButton {
-  background: #1c1c1c;
-  color: #ffffff;
+  background: #ffd400;
+  color: #1c1c1c;
+  box-shadow: 0 8px 16px rgba(255, 212, 0, 0.25);
 }
 
 .dangerButton {
@@ -97,9 +119,17 @@
   color: #ffffff;
 }
 
+.closeButton:hover,
+.primaryButton:hover,
+.dangerButton:hover {
+  transform: translateY(-1px);
+}
+
 .primaryButton:disabled,
 .closeButton:disabled,
 .dangerButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }

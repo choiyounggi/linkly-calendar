@@ -42,7 +42,7 @@
 
 .calendarCard :global(.fc .fc-daygrid-day-frame) {
   min-height: 90px;
-  padding: 6px;
+  padding: 8px 8px 6px;
 }
 
 .calendarCard :global(.fc .fc-daygrid-day-number) {
@@ -84,5 +84,11 @@
   border: none;
   color: #1c1c1c;
   border-radius: 6px;
-  padding: 2px 4px;
+  padding: 2px 6px;
+}
+
+.calendarCard :global(.fc-daygrid-event .fc-event-title) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
