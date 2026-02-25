@@ -33,6 +33,7 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
 - **Apps**:
   - `web`: [Next.js](https://nextjs.org/) (Frontend)
   - `api`: [NestJS](https://nestjs.com/) (Backend)
+- **Database**: PostgreSQL (Prisma)
 - **Backend (NestJS)**:
   - **Queue & Cache**: `@nestjs/bullmq`, `bullmq`, `ioredis` (For schedule notifications, chat)
   - **Integration**: `@googleapis/calendar` (Google Calendar)
