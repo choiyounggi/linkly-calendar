@@ -1,16 +1,21 @@
 # Dependencies
 node_modules
 .pnpm-store
+/.pnp
+.pnp.js
 
 # Next.js
 .next
 out
 
-# NestJS
+# NestJS / build outputs
 dist
 
 # Turbo
 .turbo
+
+# testing
+/coverage
 
 # Misc
 .DS_Store
