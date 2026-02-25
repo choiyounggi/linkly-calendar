@@ -4,24 +4,73 @@ import { useMemo, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction";
-import EventModal from "./EventModal";
+import EventModal, { type EventFormData } from "./EventModal";
 import styles from "./CalendarTab.module.css";
 
-const seedEvents = [
-  { title: "Anniversary", date: "2026-02-14" },
-  { title: "Date Night", date: "2026-02-21" },
-  { title: "Trip Planning", date: "2026-02-27" },
-];
+const seedEvents: Record<string, EventFormData> = {
+  "2026-02-14": {
+    title: "Anniversary",
+    location: "",
+    expected: "",
+    details: "",
+  },
+  "2026-02-21": {
+    title: "Date Night",
+    location: "",
+    expected: "",
+    details: "",
+  },
+  "2026-02-27": {
+    title: "Trip Planning",
+    location: "",
+    expected: "",
+    details: "",
+  },
+};
 
 export default function CalendarTab() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [eventsByDate, setEventsByDate] = useState<Record<string, EventFormData>>(
+    () => seedEvents,
+  );
 
-  const events = useMemo(() => seedEvents, []);
+  const events = useMemo(
+    () =>
+      Object.entries(eventsByDate).map(([date, event]) => ({
+        title: event.title,
+        date,
+      })),
+    [eventsByDate],
+  );
+
+  const selectedEvent = selectedDate ? eventsByDate[selectedDate] ?? null : null;
 
   const handleDateClick = (info: DateClickArg) => {
     setSelectedDate(info.dateStr);
     setIsModalOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleCreate = (date: string, event: EventFormData) => {
+    setEventsByDate((prev) => ({ ...prev, [date]: event }));
+    setIsModalOpen(false);
+  };
+
+  const handleUpdate = (date: string, event: EventFormData) => {
+    setEventsByDate((prev) => ({ ...prev, [date]: event }));
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (date: string) => {
+    setEventsByDate((prev) => {
+      const { [date]: _, ...rest } = prev;
+      return rest;
+    });
+    setIsModalOpen(false);
   };
 
   return (
@@ -43,7 +92,11 @@ export default function CalendarTab() {
       <EventModal
         isOpen={isModalOpen}
         selectedDate={selectedDate}
-        onClose={() => setIsModalOpen(false)}
+        existingEvent={selectedEvent}
+        onClose={handleClose}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
       />
     </div>
   );
