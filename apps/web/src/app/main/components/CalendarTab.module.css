@@ -1,0 +1,88 @@
+.calendarTab {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.calendarCard {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+}
+
+.selectedDay {
+  background: #fff4b8;
+}
+
+.calendarCard :global(.fc) {
+  font-family: inherit;
+  color: #222222;
+}
+
+.calendarCard :global(.fc .fc-scrollgrid) {
+  border: 1px solid #efefef;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.calendarCard :global(.fc .fc-scrollgrid table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.calendarCard :global(.fc .fc-col-header-cell),
+.calendarCard :global(.fc .fc-daygrid-day) {
+  border: 1px solid #f0f0f0;
+}
+
+.calendarCard :global(.fc .fc-daygrid-day-frame) {
+  min-height: 90px;
+  padding: 6px;
+}
+
+.calendarCard :global(.fc .fc-daygrid-day-number) {
+  font-size: 12px;
+  color: #6b6b6b;
+}
+
+.calendarCard :global(.fc .fc-toolbar-title) {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.calendarCard :global(.fc .fc-button) {
+  background: #ffd400;
+  border: none;
+  color: #222222;
+  font-weight: 600;
+}
+
+.calendarCard :global(.fc .fc-button:disabled) {
+  opacity: 0.6;
+}
+
+.calendarCard :global(.fc .fc-button-primary:not(:disabled).fc-button-active) {
+  background: #f5c400;
+}
+
+.calendarCard :global(.fc .fc-col-header-cell-cushion) {
+  color: #f5b400;
+  font-weight: 700;
+}
+
+.calendarCard :global(.fc .fc-day-today) {
+  background: #fff9d6;
+}
+
+.calendarCard :global(.fc-daygrid-event) {
+  background: #ffe36a;
+  border: none;
+  color: #1c1c1c;
+  border-radius: 6px;
+  padding: 2px 4px;
+}

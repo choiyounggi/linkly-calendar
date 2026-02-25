@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Calendar, Image as ImageIcon, MessageCircle, Settings } from "lucide-react";
+import CalendarTab from "./components/CalendarTab";
 import styles from "./page.module.css";
 
 const tabs = [
@@ -10,15 +11,6 @@ const tabs = [
   { key: "photos", label: "Photos", icon: ImageIcon },
   { key: "settings", label: "Settings", icon: Settings },
 ];
-
-function CalendarView() {
-  return (
-    <div className={styles.viewContent}>
-      <Calendar className={styles.viewIcon} />
-      <h2>Calendar</h2>
-    </div>
-  );
-}
 
 function ChatView() {
   return (
@@ -48,7 +40,7 @@ function SettingsView() {
 }
 
 const views: Record<string, ReactNode> = {
-  calendar: <CalendarView />,
+  calendar: <CalendarTab />,
   chat: <ChatView />,
   photos: <PhotoView />,
   settings: <SettingsView />,
