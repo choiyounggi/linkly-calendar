@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  KAKAO
+  GOOGLE
+  NAVER
+  LOCAL
+}
+
+enum CoupleStatus {
+  PENDING
+  ACTIVE
+}
+
+enum CoupleMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELED
+}
+
+model User {
+  id             String     @id @default(cuid())
+  email          String?    @unique
+  displayName    String
+  avatarUrl      String?
+  authProvider   AuthProvider
+  providerUserId String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  coupleMembers      CoupleMember[]
+  invitesSent        CoupleInvite[] @relation("InvitesSent")
+  invitesReceived    CoupleInvite[] @relation("InvitesReceived")
+  createdEvents      CalendarEvent[]
+  uploadedPhotos     Photo[]
+
+  @@unique([authProvider, providerUserId])
+}
+
+model Couple {
+  id        String        @id @default(cuid())
+  status    CoupleStatus  @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  members  CoupleMember[]
+  invites  CoupleInvite[]
+  events   CalendarEvent[]
+  photos   Photo[]
+}
+
+model CoupleMember {
+  id       String           @id @default(cuid())
+  coupleId String
+  userId   String
+  role     CoupleMemberRole @default(MEMBER)
+  joinedAt DateTime         @default(now())
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([coupleId, userId])
+  @@unique([userId])
+  @@index([coupleId])
+}
+
+model CoupleInvite {
+  id            String       @id @default(cuid())
+  coupleId      String
+  inviterUserId String
+  inviteeEmail  String?
+  inviteeUserId String?
+  code          String       @unique
+  status        InviteStatus @default(PENDING)
+  expiresAt     DateTime
+  createdAt     DateTime     @default(now())
+  respondedAt   DateTime?
+
+  couple  Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  inviter User   @relation("InvitesSent", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  invitee User?  @relation("InvitesReceived", fields: [inviteeUserId], references: [id], onDelete: SetNull)
+
+  @@index([coupleId])
+  @@index([inviterUserId])
+  @@index([inviteeUserId])
+}
+
+model CalendarEvent {
+  id              String   @id @default(cuid())
+  coupleId        String
+  title           String
+  description     String?
+  startAt         DateTime?
+  endAt           DateTime?
+  allDay          Boolean  @default(false)
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  couple   Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  createdBy User  @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([coupleId])
+  @@index([createdByUserId])
+}
+
+model Photo {
+  id               String   @id @default(cuid())
+  coupleId         String
+  uploadedByUserId String
+  url              String
+  thumbnailUrl     String?
+  caption          String?
+  takenAt          DateTime?
+  createdAt        DateTime @default(now())
+
+  couple     Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation(fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([coupleId])
+  @@index([uploadedByUserId])
+}

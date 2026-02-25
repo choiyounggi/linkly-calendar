@@ -79,6 +79,27 @@ docker compose up -d
 - Redis: `localhost:6379`
 - Default DB: `linkly` (user: `linkly`, password: `linkly_local_password`)
 
+### 🗄️ Database (Prisma)
+
+**Schema overview**
+- **User**: Social/local auth identities
+- **Couple** + **CoupleMember**: Couple registration and membership
+- **CoupleInvite**: Invitation/request flow (invite → accept/decline/expire)
+- **CalendarEvent**: Shared couple events
+- **Photo**: Shared gallery
+
+**Migrations**
+
+```bash
+# Ensure DATABASE_URL is set (see .env.example)
+DATABASE_URL=postgresql://linkly:linkly_local_password@localhost:5432/linkly?schema=public \
+  npx prisma migrate dev --name init_schema_v1
+
+npx prisma generate
+```
+
+> Note: `CoupleMember` currently has a unique constraint on `userId` to enforce **one couple per user**. Remove that constraint if multi-couple memberships are desired.
+
 ### Build
 
 ```bash
