@@ -27,25 +27,20 @@ AI-driven calendar project for smart scheduling and management.
 pnpm install
 ```
 
-### Build
-
-To build all apps and packages:
-
-```bash
-pnpm build
-```
-
 ### Development
-
-To start the development server for all apps:
 
 ```bash
 pnpm dev
 ```
 
-## 📝 Change Log
+### Build
 
-- **2026-02-25**: 
-  - Initial setup configuration.
-  - Enforced `packageManager` to `pnpm@9.12.0`.
-  - Migrated `turbo.json` to v2 schema (`pipeline` -> `tasks`).
+```bash
+pnpm build
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
