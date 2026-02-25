@@ -3,18 +3,21 @@
   display: flex;
   flex-direction: column;
   background: #f9f9f9;
+  --footer-height: 80px;
+  --content-padding: 24px;
 }
 
 .content {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  padding-bottom: 96px;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: var(--content-padding);
+  padding-bottom: calc(var(--footer-height) + 16px);
 }
 
 .viewContent {
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,7 +42,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 80px;
+  height: var(--footer-height);
   background: #ffffff;
   display: grid;
   grid-template-columns: repeat(4, 1fr);

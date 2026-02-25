@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Plus, Send } from "lucide-react";
 import styles from "./ChatTab.module.css";
 
@@ -62,14 +62,17 @@ export default function ChatTab() {
     };
   }, []);
 
-  const messageListPaddingBottom = inputBarHeight + keyboardInset + 12;
-
   return (
-    <div className={styles.chatTab}>
-      <div
-        className={styles.messageList}
-        style={{ paddingBottom: messageListPaddingBottom }}
-      >
+    <div
+      className={styles.chatTab}
+      style={
+        {
+          "--input-bar-height": `${inputBarHeight}px`,
+          "--keyboard-inset": `${keyboardInset}px`,
+        } as CSSProperties
+      }
+    >
+      <div className={styles.messageList}>
         {seedMessages.map((item) => (
           <div
             key={item.id}
@@ -88,13 +91,7 @@ export default function ChatTab() {
         ))}
       </div>
 
-      <div
-        className={styles.inputBar}
-        ref={inputBarRef}
-        style={{
-          transform: keyboardInset ? `translateY(-${keyboardInset}px)` : undefined,
-        }}
-      >
+      <div className={styles.inputBar} ref={inputBarRef}>
         <button type="button" className={styles.iconButton} aria-label="Add">
           <Plus className={styles.icon} />
         </button>
