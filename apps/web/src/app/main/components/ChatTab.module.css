@@ -55,16 +55,15 @@
 
 .inputBar {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: calc(var(--footer-height, 0px) + var(--keyboard-inset, 0px));
-  transform: translateX(-50%);
-  width: calc(100% - (var(--content-padding, 24px) * 2));
-  max-width: 720px;
+  width: 100%;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 12px var(--content-padding, 24px);
   background: #ffffff;
   border: 1px solid #eeeeee;
   border-radius: 20px;
