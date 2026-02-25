@@ -29,6 +29,11 @@
   cursor: pointer;
 }
 
+.headerButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .headerButton:last-child {
   justify-self: end;
 }
@@ -64,6 +69,35 @@
   overflow: hidden;
   aspect-ratio: 1 / 1;
   cursor: pointer;
+}
+
+.selectionIndicator {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.selectionIndicatorSelected {
+  background: #ffd400;
+  border-color: #ffd400;
+}
+
+.selectionCheck {
+  width: 8px;
+  height: 12px;
+  border: 2px solid #111111;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(45deg);
 }
 
 .gridImage {
