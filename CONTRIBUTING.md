@@ -18,7 +18,8 @@ Please apply the following labels when relevant:
 ## Before Opening a PR
 Run the following locally and resolve issues where possible:
 ```bash
+pnpm install
 pnpm lint
 pnpm build
 ```
-Warnings are acceptable if they already exist, but avoid introducing new ones.
+Warnings are acceptable if they already exist, but do not introduce new warnings. New warnings may block a merge.

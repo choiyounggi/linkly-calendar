@@ -6,6 +6,9 @@
 - [ ] Updated or added tests (if applicable)
 - [ ] Updated documentation (if applicable)
 
+## Related Issues
+- Resolves #<id>
+
 ## How to test
 1. 
 
