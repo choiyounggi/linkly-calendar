@@ -23,6 +23,12 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
 
 ## ✅ Current Status
 - **Login UI implemented** (social auth shells)
+- **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
+- **Calendar tab**: FullCalendar with modal create/edit/delete (local state)
+- **Chat tab**: UI skeleton + keyboard‑aware, full‑width input bar (local state)
+- **Photos tab**: header + grid + fullscreen viewer + select‑mode delete + local upload + infinite scroll (local state)
+- **API**: `/health` endpoint checks Postgres + Redis availability
+- **DB**: Prisma schema v1 + initial migration (`init_schema_v1`)
 
 ---
 
@@ -41,7 +47,7 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
   - **Validation**: `zod` (Shared validation between FE/BE)
   - **Auth**: `passport`, `@nestjs/passport` (Optional/Custom OAuth implementation)
 - **Frontend (Next.js)**:
-  - **Calendar UI**: `@fullcalendar/*` OR `react-big-calendar` (Selection pending based on UX)
+  - **Calendar UI**: `@fullcalendar/*`
   - **Forms**: `react-hook-form`, `zod`
 - **Packages**:
   - `@linkly/ui`: Shared UI components
@@ -67,7 +73,9 @@ pnpm install
 pnpm dev
 ```
 
-### Local Services (Docker)
+### Local Services (Docker, optional)
+
+Use this if you want the API to connect to Postgres/Redis locally.
 
 ```bash
 cp .env.example .env
@@ -78,6 +86,20 @@ docker compose up -d
 - Postgres: `localhost:5432`
 - Redis: `localhost:6379`
 - Default DB: `linkly` (user: `linkly`, password: `linkly_local_password`)
+
+### Health Check
+
+When the API is running (default `http://localhost:3000`):
+
+```bash
+curl http://localhost:3000/health
+```
+
+Response example:
+
+```json
+{"ok":true,"postgres":"ok","redis":"ok","ts":"2024-01-01T00:00:00.000Z"}
+```
 
 ### 🗄️ Database (Prisma)
 
@@ -99,6 +121,12 @@ npx prisma generate
 ```
 
 > Note: `CoupleMember` currently has a unique constraint on `userId` to enforce **one couple per user**. Remove that constraint if multi-couple memberships are desired.
+
+### Notes / Limitations
+
+- Calendar, chat, and photos currently use **local-only state** (no server persistence yet).
+- Photo uploads are stored locally in the client (no backend storage).
+- API health check expects Postgres + Redis to be reachable via env (`POSTGRES_HOST/PORT`, `REDIS_HOST/PORT`).
 
 ### Build
 
