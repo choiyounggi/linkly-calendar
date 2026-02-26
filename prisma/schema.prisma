@@ -32,6 +32,11 @@ enum InviteStatus {
   CANCELED
 }
 
+enum ChatMessageKind {
+  TEXT
+  IMAGE
+}
+
 model User {
   id             String     @id @default(cuid())
   email          String?    @unique
@@ -46,7 +51,8 @@ model User {
   invitesSent        CoupleInvite[] @relation("InvitesSent")
   invitesReceived    CoupleInvite[] @relation("InvitesReceived")
   createdEvents      CalendarEvent[]
-  uploadedPhotos     Photo[]
+  galleryPhotos      GalleryPhoto[]
+  sentChatMessages   ChatMessage[]
 
   @@unique([authProvider, providerUserId])
 }
@@ -57,10 +63,11 @@ model Couple {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  members  CoupleMember[]
-  invites  CoupleInvite[]
-  events   CalendarEvent[]
-  photos   Photo[]
+  members       CoupleMember[]
+  invites       CoupleInvite[]
+  events        CalendarEvent[]
+  galleryPhotos GalleryPhoto[]
+  chatMessages  ChatMessage[]
 }
 
 model CoupleMember {
@@ -100,16 +107,19 @@ model CoupleInvite {
 }
 
 model CalendarEvent {
-  id              String   @id @default(cuid())
-  coupleId        String
-  title           String
-  description     String?
-  startAt         DateTime?
-  endAt           DateTime?
-  allDay          Boolean  @default(false)
-  createdByUserId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  coupleId         String
+  title            String
+  description      String?
+  place            String?
+  expectedSchedule String?
+  detail           String?
+  startAt          DateTime?
+  endAt            DateTime?
+  allDay           Boolean  @default(false)
+  createdByUserId  String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   couple   Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
   createdBy User  @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
@@ -118,7 +128,7 @@ model CalendarEvent {
   @@index([createdByUserId])
 }
 
-model Photo {
+model GalleryPhoto {
   id               String   @id @default(cuid())
   coupleId         String
   uploadedByUserId String
@@ -133,4 +143,23 @@ model Photo {
 
   @@index([coupleId])
   @@index([uploadedByUserId])
+  @@map("Photo")
+}
+
+model ChatMessage {
+  id           String          @id @default(cuid())
+  coupleId     String
+  senderUserId String
+  kind         ChatMessageKind
+  text         String?
+  imageUrl     String?
+  thumbnailUrl String?
+  createdAt    DateTime        @default(now())
+  sentAtMs     BigInt
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  sender User   @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+
+  @@index([coupleId, sentAtMs])
+  @@index([senderUserId])
 }
