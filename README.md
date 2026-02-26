@@ -107,8 +107,9 @@ Response example:
 - **User**: Social/local auth identities
 - **Couple** + **CoupleMember**: Couple registration and membership
 - **CoupleInvite**: Invitation/request flow (invite → accept/decline/expire)
-- **CalendarEvent**: Shared couple events
-- **Photo**: Shared gallery
+- **CalendarEvent**: Shared couple events (title/place/expectedSchedule/detail + legacy description)
+- **GalleryPhoto**: Shared gallery photos (stored in DB table `Photo`)
+- **ChatMessage**: Couple chat messages (TEXT/IMAGE, ms timestamp)
 
 **Migrations**
 
