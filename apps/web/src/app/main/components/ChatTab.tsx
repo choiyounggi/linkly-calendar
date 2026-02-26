@@ -12,36 +12,49 @@ import {
 import { Plus, Send } from "lucide-react";
 import styles from "./ChatTab.module.css";
 
-type Message = {
-  id: number;
-  text: string;
+type ChatMessage = {
+  id: string;
   sender: "me" | "partner";
+  sentAtMs: number;
+  kind: "text" | "image";
+  text?: string;
+  imageSrc?: string;
 };
 
-const seedMessages: Message[] = [
-  { id: 1, text: "오늘 일정 어때?", sender: "partner" },
-  { id: 2, text: "저녁 7시에 가능해!", sender: "me" },
-  { id: 3, text: "좋아, 그럼 카페에서 만나자.", sender: "partner" },
-  { id: 4, text: "오케이! 기대돼 😊", sender: "me" },
+const seedMessages: Array<Pick<ChatMessage, "sender" | "kind" | "text" | "imageSrc">> = [
+  { sender: "partner", kind: "text", text: "오늘 일정 어때?" },
+  { sender: "me", kind: "text", text: "저녁 7시에 가능해!" },
+  { sender: "partner", kind: "text", text: "좋아, 그럼 카페에서 만나자." },
+  { sender: "me", kind: "text", text: "오케이! 기대돼 😊" },
+  {
+    sender: "partner",
+    kind: "image",
+    imageSrc: "https://placehold.co/320x200?text=Chat+Photo",
+  },
 ];
 
 const INITIAL_BATCH = 30;
 const LOAD_BATCH = 20;
 const SCROLL_THRESHOLD = 80;
+const STICKY_BOTTOM_THRESHOLD = 32;
+const TOTAL_MESSAGES = 200;
 
 const buildDummyMessages = () => {
-  const messages: Message[] = [];
-  let id = 1;
+  const messages: ChatMessage[] = [];
+  const startTime = Date.now() - TOTAL_MESSAGES * 60_000;
 
-  for (let index = 0; index < 60; index += 1) {
-    for (const seed of seedMessages) {
-      messages.push({
-        id,
-        text: `${seed.text} (#${index + 1})`,
-        sender: seed.sender,
-      });
-      id += 1;
-    }
+  for (let index = 0; index < TOTAL_MESSAGES; index += 1) {
+    const seed = seedMessages[index % seedMessages.length];
+    const sentAtMs = startTime + index * 60_000;
+
+    messages.push({
+      id: `msg-${index + 1}`,
+      sender: seed.sender,
+      sentAtMs,
+      kind: seed.kind,
+      text: seed.kind === "text" ? `${seed.text} (#${index + 1})` : undefined,
+      imageSrc: seed.kind === "image" ? seed.imageSrc : undefined,
+    });
   }
 
   return messages;
@@ -54,19 +67,25 @@ export default function ChatTab() {
   const inputBarRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const isPrependingRef = useRef(false);
+  const shouldStickToBottomRef = useRef(true);
   const previousScrollHeightRef = useRef<number | null>(null);
+  const previousMessageCountRef = useRef(0);
   const hasInitialScrollRef = useRef(false);
 
-  const allMessages = useMemo(() => buildDummyMessages(), []);
-  const initialStartIndex = useMemo(
-    () => Math.max(0, allMessages.length - INITIAL_BATCH),
+  const [allMessages, setAllMessages] = useState<ChatMessage[]>(() => buildDummyMessages());
+  const sortedMessages = useMemo(
+    () => [...allMessages].sort((a, b) => a.sentAtMs - b.sentAtMs),
     [allMessages]
+  );
+  const initialStartIndex = useMemo(
+    () => Math.max(0, sortedMessages.length - INITIAL_BATCH),
+    [sortedMessages.length]
   );
   const [startIndex, setStartIndex] = useState(initialStartIndex);
 
   const visibleMessages = useMemo(
-    () => allMessages.slice(startIndex),
-    [allMessages, startIndex]
+    () => sortedMessages.slice(startIndex),
+    [sortedMessages, startIndex]
   );
 
   useLayoutEffect(() => {
@@ -120,14 +139,25 @@ export default function ChatTab() {
     setStartIndex(nextStartIndex);
   }, [startIndex]);
 
+  const updateStickiness = useCallback(() => {
+    const list = messageListRef.current;
+    if (!list) return;
+
+    const distanceFromBottom =
+      list.scrollHeight - list.scrollTop - list.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom <= STICKY_BOTTOM_THRESHOLD;
+  }, []);
+
   const handleScroll = useCallback(() => {
     const list = messageListRef.current;
     if (!list) return;
 
+    updateStickiness();
+
     if (list.scrollTop <= SCROLL_THRESHOLD) {
       loadOlderMessages();
     }
-  }, [loadOlderMessages]);
+  }, [loadOlderMessages, updateStickiness]);
 
   useLayoutEffect(() => {
     const list = messageListRef.current;
@@ -141,11 +171,48 @@ export default function ChatTab() {
       isPrependingRef.current = false;
     }
 
+    const messageCount = sortedMessages.length;
+    const previousCount = previousMessageCountRef.current;
+    const didAppend = messageCount > previousCount && !isPrependingRef.current;
+
     if (!hasInitialScrollRef.current) {
       list.scrollTop = list.scrollHeight;
       hasInitialScrollRef.current = true;
+      shouldStickToBottomRef.current = true;
+    } else if (didAppend && shouldStickToBottomRef.current) {
+      list.scrollTop = list.scrollHeight;
     }
-  }, [startIndex]);
+
+    previousMessageCountRef.current = messageCount;
+  }, [startIndex, sortedMessages.length]);
+
+  const appendMessage = useCallback((nextMessage: ChatMessage) => {
+    setAllMessages((prev) => [...prev, nextMessage]);
+  }, []);
+
+  const handleSend = useCallback(() => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+
+    appendMessage({
+      id: `msg-${Date.now()}`,
+      sender: "me",
+      sentAtMs: Date.now(),
+      kind: "text",
+      text: trimmed,
+    });
+    setMessage("");
+  }, [appendMessage, message]);
+
+  const handleAddMessage = useCallback(() => {
+    appendMessage({
+      id: `msg-${Date.now()}-partner`,
+      sender: "partner",
+      sentAtMs: Date.now(),
+      kind: "text",
+      text: "새 메시지가 도착했어요!",
+    });
+  }, [appendMessage]);
 
   return (
     <div
@@ -174,14 +241,27 @@ export default function ChatTab() {
                 item.sender === "me" ? styles.messageBubbleMine : styles.messageBubblePartner
               }`}
             >
-              {item.text}
+              {item.kind === "text" ? (
+                item.text
+              ) : (
+                <img
+                  className={styles.messageImage}
+                  src={item.imageSrc}
+                  alt="공유된 이미지"
+                />
+              )}
             </div>
           </div>
         ))}
       </div>
 
       <div className={styles.inputBar} ref={inputBarRef}>
-        <button type="button" className={styles.iconButton} aria-label="Add">
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Add"
+          onClick={handleAddMessage}
+        >
           <Plus className={styles.icon} />
         </button>
         <input
@@ -190,7 +270,12 @@ export default function ChatTab() {
           value={message}
           onChange={(event) => setMessage(event.target.value)}
         />
-        <button type="button" className={styles.sendButton} aria-label="Send">
+        <button
+          type="button"
+          className={styles.sendButton}
+          aria-label="Send"
+          onClick={handleSend}
+        >
           <Send className={styles.icon} />
         </button>
       </div>
