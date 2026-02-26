@@ -127,6 +127,8 @@ npx prisma generate
 
 `docker compose up -d` runs a one-shot `db-init` service that applies migrations and seeds:
 
+- The `db-init` container uses **anonymous volumes** for `/workspace/node_modules` (and `.pnpm-store`) so container installs don’t write into the host workspace (prevents cross-OS/arch node_modules issues).
+
 - Users: `linkly.one@example.com`, `linkly.two@example.com`
 - Couple: status `ACTIVE`
 - Chat: a few text + image messages

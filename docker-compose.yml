@@ -38,6 +38,8 @@ services:
       DATABASE_URL: postgresql://linkly:linkly_local_password@postgres:5432/linkly?schema=public
     volumes:
       - ./:/workspace
+      - /workspace/node_modules
+      - /workspace/.pnpm-store
     command: >
       bash -c "corepack enable
       && pnpm install --frozen-lockfile
