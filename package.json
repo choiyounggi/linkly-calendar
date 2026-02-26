@@ -8,14 +8,21 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "pnpm infra:up && turbo run dev",
+    "dev:with-infra": "pnpm infra:up && turbo run dev",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
     "lint": "turbo run lint"
   },
   "devDependencies": {
-    "turbo": "^2.0.0"
+    "turbo": "^2.0.0",
+    "tsx": "^4.19.2"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "prisma": "^6.19.2"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
