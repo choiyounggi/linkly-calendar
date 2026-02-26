@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { Plus, Send } from "lucide-react";
 import styles from "./ChatTab.module.css";
 
@@ -17,11 +25,49 @@ const seedMessages: Message[] = [
   { id: 4, text: "오케이! 기대돼 😊", sender: "me" },
 ];
 
+const INITIAL_BATCH = 30;
+const LOAD_BATCH = 20;
+const SCROLL_THRESHOLD = 80;
+
+const buildDummyMessages = () => {
+  const messages: Message[] = [];
+  let id = 1;
+
+  for (let index = 0; index < 60; index += 1) {
+    for (const seed of seedMessages) {
+      messages.push({
+        id,
+        text: `${seed.text} (#${index + 1})`,
+        sender: seed.sender,
+      });
+      id += 1;
+    }
+  }
+
+  return messages;
+};
+
 export default function ChatTab() {
   const [message, setMessage] = useState("");
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [inputBarHeight, setInputBarHeight] = useState(0);
   const inputBarRef = useRef<HTMLDivElement | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const isPrependingRef = useRef(false);
+  const previousScrollHeightRef = useRef<number | null>(null);
+  const hasInitialScrollRef = useRef(false);
+
+  const allMessages = useMemo(() => buildDummyMessages(), []);
+  const initialStartIndex = useMemo(
+    () => Math.max(0, allMessages.length - INITIAL_BATCH),
+    [allMessages]
+  );
+  const [startIndex, setStartIndex] = useState(initialStartIndex);
+
+  const visibleMessages = useMemo(
+    () => allMessages.slice(startIndex),
+    [allMessages, startIndex]
+  );
 
   useLayoutEffect(() => {
     const inputBar = inputBarRef.current;
@@ -62,6 +108,45 @@ export default function ChatTab() {
     };
   }, []);
 
+  const loadOlderMessages = useCallback(() => {
+    const list = messageListRef.current;
+    if (!list || startIndex === 0 || isPrependingRef.current) return;
+
+    const nextStartIndex = Math.max(0, startIndex - LOAD_BATCH);
+    if (nextStartIndex === startIndex) return;
+
+    isPrependingRef.current = true;
+    previousScrollHeightRef.current = list.scrollHeight;
+    setStartIndex(nextStartIndex);
+  }, [startIndex]);
+
+  const handleScroll = useCallback(() => {
+    const list = messageListRef.current;
+    if (!list) return;
+
+    if (list.scrollTop <= SCROLL_THRESHOLD) {
+      loadOlderMessages();
+    }
+  }, [loadOlderMessages]);
+
+  useLayoutEffect(() => {
+    const list = messageListRef.current;
+    if (!list) return;
+
+    if (isPrependingRef.current && previousScrollHeightRef.current !== null) {
+      const previousHeight = previousScrollHeightRef.current;
+      const newHeight = list.scrollHeight;
+      list.scrollTop += newHeight - previousHeight;
+      previousScrollHeightRef.current = null;
+      isPrependingRef.current = false;
+    }
+
+    if (!hasInitialScrollRef.current) {
+      list.scrollTop = list.scrollHeight;
+      hasInitialScrollRef.current = true;
+    }
+  }, [startIndex]);
+
   return (
     <div
       className={styles.chatTab}
@@ -72,8 +157,12 @@ export default function ChatTab() {
         } as CSSProperties
       }
     >
-      <div className={styles.messageList}>
-        {seedMessages.map((item) => (
+      <div
+        className={styles.messageList}
+        ref={messageListRef}
+        onScroll={handleScroll}
+      >
+        {visibleMessages.map((item) => (
           <div
             key={item.id}
             className={`${styles.messageRow} ${
