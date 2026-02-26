@@ -120,12 +120,17 @@ export default function PhotosTab() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const nextIdRef = useRef(initialImages.length + 1);
   const imagesRef = useRef(images);
+  const visibleCountRef = useRef(visibleCount);
   const galleryRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
+
+  useEffect(() => {
+    visibleCountRef.current = visibleCount;
+  }, [visibleCount]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -142,19 +147,22 @@ export default function PhotosTab() {
         if (!entry?.isIntersecting) {
           return;
         }
-        setVisibleCount((current) => {
-          if (current >= images.length) {
-            return current;
-          }
-          setIsLoadingMore(true);
-          if (clearLoadingTimer) {
-            window.clearTimeout(clearLoadingTimer);
-          }
-          clearLoadingTimer = window.setTimeout(() => {
-            setIsLoadingMore(false);
-          }, 160);
-          return Math.min(current + PAGE_SIZE, images.length);
-        });
+        const current = visibleCountRef.current;
+        if (current >= images.length) {
+          return;
+        }
+        const nextVisible = Math.min(current + PAGE_SIZE, images.length);
+        if (nextVisible === current) {
+          return;
+        }
+        setVisibleCount(nextVisible);
+        setIsLoadingMore(true);
+        if (clearLoadingTimer) {
+          window.clearTimeout(clearLoadingTimer);
+        }
+        clearLoadingTimer = window.setTimeout(() => {
+          setIsLoadingMore(false);
+        }, 160);
       },
       {
         root,
@@ -201,6 +209,8 @@ export default function PhotosTab() {
       src: URL.createObjectURL(file),
       isLocal: true,
     }));
+    const nextLength = images.length + items.length;
+    setVisibleCount((current) => Math.max(current, nextLength));
     dispatch({ type: "ADD_IMAGES", items });
     event.target.value = "";
   };
