@@ -28,6 +28,25 @@ services:
       timeout: 5s
       retries: 5
 
+  db-init:
+    image: node:22-bookworm-slim
+    working_dir: /workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://linkly:linkly_local_password@postgres:5432/linkly?schema=public
+    volumes:
+      - ./:/workspace
+      - /workspace/node_modules
+      - /workspace/.pnpm-store
+    command: >
+      bash -c "corepack enable
+      && pnpm install --frozen-lockfile
+      && pnpm prisma migrate deploy
+      && pnpm prisma db seed"
+    restart: "no"
+
 volumes:
   pgdata:
   redisdata:

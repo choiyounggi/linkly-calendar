@@ -73,14 +73,16 @@ pnpm install
 pnpm dev
 ```
 
-### Local Services (Docker, optional)
+> `pnpm dev` now starts the local infra automatically (`docker compose up -d`).
 
-Use this if you want the API to connect to Postgres/Redis locally.
+### Local Services (Docker)
+
+If you want to manage infra manually:
 
 ```bash
 cp .env.example .env
 
-docker compose up -d
+pnpm infra:up
 ```
 
 - Postgres: `localhost:5432`
@@ -119,6 +121,24 @@ DATABASE_URL=postgresql://linkly:linkly_local_password@localhost:5432/linkly?sch
   npx prisma migrate dev --name init_schema_v1
 
 npx prisma generate
+```
+
+**Seed data (automatic)**
+
+`docker compose up -d` runs a one-shot `db-init` service that applies migrations and seeds:
+
+- The `db-init` container uses **anonymous volumes** for `/workspace/node_modules` (and `.pnpm-store`) so container installs don’t write into the host workspace (prevents cross-OS/arch node_modules issues).
+
+- Users: `linkly.one@example.com`, `linkly.two@example.com`
+- Couple: status `ACTIVE`
+- Chat: a few text + image messages
+- Gallery: 2 photos
+
+To reseed:
+
+```bash
+docker compose down -v
+pnpm infra:up
 ```
 
 > Note: `CoupleMember` currently has a unique constraint on `userId` to enforce **one couple per user**. Remove that constraint if multi-couple memberships are desired.
