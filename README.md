@@ -34,6 +34,40 @@ Chat messages are fanned out through a queue + Pub/Sub bridge:
 3. **WebSocket gateway** subscribes to Redis and emits `chat:message` to room `couple:{coupleId}`.
 4. **Clients** de-dupe by `messageId` (duplicate jobs are OK).
 
+### Chat API (Encrypted)
+
+**POST `/chat/messages`**
+
+```bash
+curl --request POST \
+  --url http://localhost:3000/chat/messages \
+  --header 'content-type: application/json' \
+  --data '{
+    "coupleId": "couple_123",
+    "senderUserId": "user_123",
+    "kind": "TEXT",
+    "text": "Hello!",
+    "sentAtMs": 1700000000000
+  }'
+```
+
+**GET `/chat/messages`**
+
+```bash
+curl --request GET \
+  --url "http://localhost:3000/chat/messages?coupleId=couple_123&userId=user_123&limit=50"
+```
+
+### Chat Security Notes
+
+- Chat payloads are encrypted at rest using **AES-256-GCM**.
+- Configure keys via environment variables:
+  - `CHAT_ENCRYPTION_KEYS` (preferred): comma-delimited `version:base64Key` pairs
+    - Example: `CHAT_ENCRYPTION_KEYS=1:BASE64_KEY,2:BASE64_KEY`
+  - `CHAT_ENCRYPTION_KEY_VERSION`: active version for new messages (default `1`)
+  - `CHAT_ENCRYPTION_KEY` (legacy fallback): single base64/hex key for the active version
+- Keys must be **32 bytes** (base64 or 64-char hex).
+
 ## ✅ Current Status
 - **Login UI implemented** (social auth shells)
 - **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
