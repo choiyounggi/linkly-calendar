@@ -8,8 +8,9 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "pnpm infra:up && turbo run dev",
-    "dev:with-infra": "pnpm infra:up && turbo run dev",
+    "dev": "pnpm prisma:generate && pnpm infra:up && turbo run dev",
+    "dev:with-infra": "pnpm prisma:generate && pnpm infra:up && turbo run dev",
+    "prisma:generate": "prisma generate",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "lint": "turbo run lint"
