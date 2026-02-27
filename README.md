@@ -58,6 +58,16 @@ curl --request GET \
   --url "http://localhost:3000/chat/messages?coupleId=couple_123&userId=user_123&limit=50"
 ```
 
+**GET `/chat/identity`**
+
+Resolve the seeded "current user" identity for local/dev usage. Defaults to `seed_user_1` when
+`providerUserId` is omitted.
+
+```bash
+curl --request GET \
+  --url "http://localhost:3000/chat/identity?providerUserId=seed_user_1"
+```
+
 ### Chat Security Notes
 
 - Chat payloads are encrypted at rest using **AES-256-GCM**.

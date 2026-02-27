@@ -49,58 +49,44 @@ const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 15_000;
 const RECONNECT_JITTER = 0.2;
 
-const seedMessages: Array<Pick<ChatMessage, "sender" | "kind" | "text" | "imageSrc">> = [
-  { sender: "partner", kind: "text", text: "오늘 일정 어때?" },
-  { sender: "me", kind: "text", text: "저녁 7시에 가능해!" },
-  { sender: "partner", kind: "text", text: "좋아, 그럼 카페에서 만나자." },
-  { sender: "me", kind: "text", text: "오케이! 기대돼 😊" },
-  {
-    sender: "partner",
-    kind: "image",
-    imageSrc: "https://placehold.co/320x200?text=Chat+Photo",
-  },
-];
-
 const INITIAL_BATCH = 30;
 const LOAD_BATCH = 20;
 const SCROLL_THRESHOLD = 80;
 const STICKY_BOTTOM_THRESHOLD = 32;
-const TOTAL_MESSAGES = 200;
 
-const buildDummyMessages = () => {
-  const messages: ChatMessage[] = [];
-  const startTime = Date.now() - TOTAL_MESSAGES * 60_000;
-
-  for (let index = 0; index < TOTAL_MESSAGES; index += 1) {
-    const seed = seedMessages[index % seedMessages.length];
-    const sentAtMs = startTime + index * 60_000;
-
-    messages.push({
-      id: `msg-${index + 1}`,
-      sender: seed.sender,
-      sentAtMs,
-      kind: seed.kind,
-      text: seed.kind === "text" ? `${seed.text} (#${index + 1})` : undefined,
-      imageSrc: seed.kind === "image" ? seed.imageSrc : undefined,
-    });
-  }
-
-  return messages;
+type ChatIdentity = {
+  coupleId: string;
+  userId: string;
 };
 
-const resolveChatIdentity = () => {
+const readStoredIdentity = (): ChatIdentity | null => {
   if (typeof window === "undefined") {
-    return { coupleId: "demo-couple", userId: "demo-user" };
+    return null;
   }
 
   const params = new URLSearchParams(window.location.search);
   const storageCoupleId = window.localStorage.getItem("coupleId");
   const storageUserId = window.localStorage.getItem("userId");
 
-  return {
-    coupleId: params.get("coupleId") ?? storageCoupleId ?? "demo-couple",
-    userId: params.get("userId") ?? storageUserId ?? "demo-user",
-  };
+  const coupleId = params.get("coupleId") ?? storageCoupleId ?? null;
+  const userId = params.get("userId") ?? storageUserId ?? null;
+
+  if (!coupleId || !userId) {
+    return null;
+  }
+
+  return { coupleId, userId };
+};
+
+const readProviderUserId = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const storageProviderUserId = window.localStorage.getItem("providerUserId");
+
+  return params.get("providerUserId") ?? storageProviderUserId ?? null;
 };
 
 const createClientMessageId = () => {
@@ -133,28 +119,25 @@ export default function ChatTab() {
   const previousMessageCountRef = useRef(0);
   const hasInitialScrollRef = useRef(false);
 
-  const { coupleId, userId } = useMemo(() => resolveChatIdentity(), []);
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-  const chatApiUrl = apiBaseUrl ? `${apiBaseUrl}/chat/send` : "/chat/send";
-  const chatSocketUrl = apiBaseUrl ? `${apiBaseUrl}${CHAT_NAMESPACE}` : CHAT_NAMESPACE;
-
-  const initialMessages = useMemo(
-    () => (process.env.NODE_ENV === "development" ? buildDummyMessages() : []),
-    []
+  const [chatIdentity, setChatIdentity] = useState<ChatIdentity | null>(() =>
+    readStoredIdentity()
   );
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const chatApiBaseUrl = apiBaseUrl ? `${apiBaseUrl}/chat` : "/chat";
+  const chatApiUrl = `${chatApiBaseUrl}/messages`;
+  const chatIdentityUrl = `${chatApiBaseUrl}/identity`;
+  const chatSocketUrl = apiBaseUrl ? `${apiBaseUrl}${CHAT_NAMESPACE}` : CHAT_NAMESPACE;
+  const coupleId = chatIdentity?.coupleId ?? "";
+  const userId = chatIdentity?.userId ?? "";
 
-  const [allMessages, setAllMessages] = useState<ChatMessage[]>(() => initialMessages);
-  const seenMessageIdsRef = useRef(new Set(initialMessages.map((item) => item.id)));
+  const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
+  const seenMessageIdsRef = useRef(new Set<string>());
+  const [startIndex, setStartIndex] = useState(0);
 
   const sortedMessages = useMemo(
     () => [...allMessages].sort((a, b) => a.sentAtMs - b.sentAtMs),
     [allMessages]
   );
-  const initialStartIndex = useMemo(
-    () => Math.max(0, sortedMessages.length - INITIAL_BATCH),
-    [sortedMessages.length]
-  );
-  const [startIndex, setStartIndex] = useState(initialStartIndex);
 
   const visibleMessages = useMemo(
     () => sortedMessages.slice(startIndex),
@@ -182,20 +165,29 @@ export default function ChatTab() {
     });
   }, []);
 
-  const handleIncomingMessage = useCallback(
-    (payload: ApiChatMessage) => {
-      if (!payload?.id) return;
+  const mapApiMessage = useCallback(
+    (payload: ApiChatMessage): ChatMessage | null => {
+      if (!payload?.id) return null;
 
-      appendMessage({
+      return {
         id: payload.id,
         sender: payload.senderUserId === userId ? "me" : "partner",
         sentAtMs: payload.sentAtMs ?? Date.now(),
         kind: payload.kind === "IMAGE" ? "image" : "text",
         text: payload.text ?? undefined,
         imageSrc: payload.imageUrl ?? undefined,
-      });
+      };
     },
-    [appendMessage, userId]
+    [userId]
+  );
+
+  const handleIncomingMessage = useCallback(
+    (payload: ApiChatMessage) => {
+      const mapped = mapApiMessage(payload);
+      if (!mapped) return;
+      appendMessage(mapped);
+    },
+    [appendMessage, mapApiMessage]
   );
 
   const markActivity = useCallback(() => {
@@ -250,7 +242,7 @@ export default function ChatTab() {
             lastMessageId: lastSeen?.id ?? null,
             sinceMs: lastSeen?.sentAtMs ?? null,
           },
-          (error, response) => {
+          (error: Error | null, response: unknown) => {
             if (error) return;
             const payload = response as { messages?: ApiChatMessage[] } | ApiChatMessage[];
             const items = Array.isArray(payload)
@@ -265,6 +257,93 @@ export default function ChatTab() {
   );
 
   useEffect(() => {
+    if (chatIdentity) return;
+    const providerUserId = readProviderUserId();
+    const controller = new AbortController();
+
+    const fetchIdentity = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (providerUserId) {
+          params.set("providerUserId", providerUserId);
+        }
+        const url = params.toString()
+          ? `${chatIdentityUrl}?${params.toString()}`
+          : chatIdentityUrl;
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+          console.warn("Failed to fetch chat identity", response.statusText);
+          return;
+        }
+        const payload = await response.json();
+        const identity = payload?.identity;
+        if (!identity?.coupleId || !identity?.userId) return;
+        setChatIdentity({ coupleId: identity.coupleId, userId: identity.userId });
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("coupleId", identity.coupleId);
+          window.localStorage.setItem("userId", identity.userId);
+          if (identity.providerUserId) {
+            window.localStorage.setItem("providerUserId", identity.providerUserId);
+          }
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn("Failed to fetch chat identity", error);
+      }
+    };
+
+    void fetchIdentity();
+
+    return () => controller.abort();
+  }, [chatIdentity, chatIdentityUrl]);
+
+  useEffect(() => {
+    if (!chatIdentity) return;
+
+    const controller = new AbortController();
+
+    const fetchMessages = async () => {
+      try {
+        const params = new URLSearchParams({
+          coupleId: chatIdentity.coupleId,
+          userId: chatIdentity.userId,
+          limit: String(INITIAL_BATCH + LOAD_BATCH),
+        });
+        const response = await fetch(`${chatApiUrl}?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          console.warn("Failed to fetch chat messages", response.statusText);
+          return;
+        }
+        const payload = await response.json();
+        const items = Array.isArray(payload?.messages) ? payload.messages : [];
+        const mapped = items
+          .map((item: ApiChatMessage) => mapApiMessage(item))
+          .filter(Boolean) as ChatMessage[];
+        setAllMessages(mapped);
+        seenMessageIdsRef.current = new Set(mapped.map((item) => item.id));
+        if (mapped.length > 0) {
+          const latest = mapped.reduce((current, next) =>
+            next.sentAtMs > current.sentAtMs ? next : current
+          );
+          lastSeenMessageRef.current = { id: latest.id, sentAtMs: latest.sentAtMs };
+        }
+        setStartIndex(Math.max(0, mapped.length - INITIAL_BATCH));
+        hasInitialScrollRef.current = false;
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn("Failed to fetch chat messages", error);
+      }
+    };
+
+    void fetchMessages();
+
+    return () => controller.abort();
+  }, [chatApiUrl, chatIdentity, mapApiMessage]);
+
+  useEffect(() => {
+    if (!coupleId || !userId) return;
     isUnmountingRef.current = false;
     const socket = io(chatSocketUrl, {
       transports: ["websocket"],
@@ -464,6 +543,7 @@ export default function ChatTab() {
       kind?: "TEXT" | "IMAGE";
       imageUrl?: string;
     }) => {
+      if (!coupleId || !userId) return;
       const clientMessageId = createClientMessageId();
       const sentAtMs = Date.now();
 
