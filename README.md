@@ -107,6 +107,49 @@ Response example:
 {"ok":true,"postgres":"ok","redis":"ok","ts":"2024-01-01T00:00:00.000Z"}
 ```
 
+### 🚍 Transit (Tmap)
+
+> Requires `TMAP_APP_KEY` in your `.env`.
+
+**POST `/v1/transit/route:compute`**
+
+```bash
+curl --request POST \
+  --url http://localhost:3000/v1/transit/route:compute \
+  --header 'content-type: application/json' \
+  --data '{
+    "startX": "127.02550910860451",
+    "startY": "37.63788539420793",
+    "endX": "127.030406594109",
+    "endY": "37.609094989686",
+    "count": 1,
+    "lang": 0,
+    "format": "json"
+  }'
+```
+
+**POST `/v1/transit/departures:compute`**
+
+```bash
+curl --request POST \
+  --url http://localhost:3000/v1/transit/departures:compute \
+  --header 'content-type: application/json' \
+  --data '{
+    "startX": "127.02550910860451",
+    "startY": "37.63788539420793",
+    "endX": "127.030406594109",
+    "endY": "37.609094989686",
+    "arrivalBy": true,
+    "arrivalTime": "20240227120000",
+    "count": 1,
+    "lang": 0,
+    "format": "json"
+  }'
+```
+
+> The departures endpoint maps `arrivalBy` + `arrivalTime`/`departureTime` into
+> `reqDttm` per the public Tmap Transit docs: https://transit.tmapmobility.com/guide/procedure
+
 ### 🗄️ Database (Prisma)
 
 **Schema overview**
