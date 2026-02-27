@@ -44,7 +44,10 @@ export class AppController {
   @Get('health')
   async getHealth() {
     const postgresHost = process.env.POSTGRES_HOST ?? 'localhost';
-    const postgresPort = Number.parseInt(process.env.POSTGRES_PORT ?? '5432', 10);
+    const postgresPort = Number.parseInt(
+      process.env.POSTGRES_PORT ?? '5432',
+      10,
+    );
     const redisHost = process.env.REDIS_HOST ?? 'localhost';
     const redisPort = Number.parseInt(process.env.REDIS_PORT ?? '6379', 10);
 
