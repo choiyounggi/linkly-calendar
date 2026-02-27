@@ -10,6 +10,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  await app.listen(process.env.PORT ?? 3000);
+  const defaultPort = process.env.NODE_ENV === 'development' ? 3001 : 3000;
+  await app.listen(process.env.PORT ?? defaultPort);
 }
 void bootstrap();
