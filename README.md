@@ -25,6 +25,15 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
 
 - Tmap Transit API spec: [`docs/transit/tmap.md`](docs/transit/tmap.md)
 
+## 💬 Chat Fanout (BullMQ + Redis Pub/Sub)
+
+Chat messages are fanned out through a queue + Pub/Sub bridge:
+
+1. **API** enqueues a job in BullMQ queue `chat-fanout` with `{ coupleId, messageId }`.
+2. **Worker** consumes the job and publishes to Redis channel `chat:couple:{coupleId}`.
+3. **WebSocket gateway** subscribes to Redis and emits `chat:message` to room `couple:{coupleId}`.
+4. **Clients** de-dupe by `messageId` (duplicate jobs are OK).
+
 ## ✅ Current Status
 - **Login UI implemented** (social auth shells)
 - **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
