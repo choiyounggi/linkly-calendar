@@ -159,8 +159,10 @@ model ChatMessage {
   coupleId     String
   senderUserId String
   kind         ChatMessageKind
-  text         String?
-  imageUrl     String?
+  ciphertext   String
+  iv           String
+  tag          String
+  keyVersion   Int             @default(1)
   thumbnailUrl String?
   createdAt    DateTime        @default(now())
   sentAtMs     BigInt
