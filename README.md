@@ -21,6 +21,10 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
 - **Web**: Next.js
 - **API**: NestJS
 
+## 🚍 Transit Routing
+
+- Tmap Transit API spec: [`docs/transit/tmap.md`](docs/transit/tmap.md)
+
 ## ✅ Current Status
 - **Login UI implemented** (social auth shells)
 - **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
@@ -106,10 +110,10 @@ Response example:
 ### 🗄️ Database (Prisma)
 
 **Schema overview**
-- **User**: Social/local auth identities
+- **User**: Social/local auth identities + optional home location (homeLat/homeLng/homeAddress/homeUpdatedAt)
 - **Couple** + **CoupleMember**: Couple registration and membership
 - **CoupleInvite**: Invitation/request flow (invite → accept/decline/expire)
-- **CalendarEvent**: Shared couple events (title/place/expectedSchedule/detail + legacy description)
+- **CalendarEvent**: Shared couple events (title/place/expectedSchedule/detail + legacy description) + optional meetup point (meetupLat/meetupLng/meetupName/meetupNote)
 - **GalleryPhoto**: Shared gallery photos (stored in DB table `Photo`)
 - **ChatMessage**: Couple chat messages (TEXT/IMAGE, ms timestamp)
 

@@ -44,6 +44,10 @@ model User {
   avatarUrl      String?
   authProvider   AuthProvider
   providerUserId String
+  homeLat        Float?
+  homeLng        Float?
+  homeAddress    String?
+  homeUpdatedAt  DateTime?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -117,6 +121,10 @@ model CalendarEvent {
   startAt          DateTime?
   endAt            DateTime?
   allDay           Boolean  @default(false)
+  meetupLat        Float?
+  meetupLng        Float?
+  meetupName       String?
+  meetupNote       String?
   createdByUserId  String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
