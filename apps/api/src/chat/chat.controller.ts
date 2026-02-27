@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatFetchQueryDto } from './dto/chat-fetch.dto';
+import { ChatIdentityQueryDto } from './dto/chat-identity.dto';
 import { ChatMessageKind, ChatSendDto } from './dto/chat-send.dto';
 
 @UsePipes(
@@ -34,6 +35,12 @@ export class ChatController {
   async fetchMessages(@Query() query: ChatFetchQueryDto) {
     const messages = await this.chatService.fetchMessages(query);
     return { ok: true, messages };
+  }
+
+  @Get('identity')
+  async fetchIdentity(@Query() query: ChatIdentityQueryDto) {
+    const identity = await this.chatService.fetchIdentity(query.providerUserId);
+    return { ok: true, identity };
   }
 
   private ensurePayloadMatchesKind(payload: ChatSendDto) {

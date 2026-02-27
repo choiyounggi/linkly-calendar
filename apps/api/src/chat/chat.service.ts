@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import type { ChatMessage } from '@prisma/client';
+import { AuthProvider, type ChatMessage } from '@prisma/client';
 import { ChatFanoutQueue } from '../chat-fanout/chat-fanout.queue';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatEncryptionService } from './chat-encryption.service';
@@ -81,6 +81,38 @@ export class ChatService {
     });
 
     return messages.map((record) => this.decryptView(record));
+  }
+
+  async fetchIdentity(providerUserId = 'seed_user_1') {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        authProvider: AuthProvider.LOCAL,
+        providerUserId,
+      },
+      select: {
+        id: true,
+        providerUserId: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Seed user not found.');
+    }
+
+    const membership = await this.prisma.coupleMember.findFirst({
+      where: { userId: user.id },
+      select: { coupleId: true },
+    });
+
+    if (!membership) {
+      throw new BadRequestException('Seed user has no couple.');
+    }
+
+    return {
+      userId: user.id,
+      coupleId: membership.coupleId,
+      providerUserId: user.providerUserId,
+    };
   }
 
   private async ensureCoupleMember(coupleId: string, userId: string) {
