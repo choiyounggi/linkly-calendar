@@ -122,7 +122,9 @@ export default function ChatTab() {
   const [chatIdentity, setChatIdentity] = useState<ChatIdentity | null>(() =>
     readStoredIdentity()
   );
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_URL ??
+    (process.env.NODE_ENV === "development" ? "http://localhost:3001" : "");
   const chatApiBaseUrl = apiBaseUrl ? `${apiBaseUrl}/chat` : "/chat";
   const chatApiUrl = `${chatApiBaseUrl}/messages`;
   const chatIdentityUrl = `${chatApiBaseUrl}/identity`;
