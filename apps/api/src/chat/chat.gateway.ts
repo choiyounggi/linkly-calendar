@@ -13,6 +13,7 @@ import { ChatService } from './chat.service';
 type ChatSocketData = {
   coupleId?: string;
   userId?: string;
+  lastSeenAtMs?: number;
 };
 
 type ChatSocket = Socket<
@@ -43,6 +44,18 @@ export class ChatGateway {
   private readonly server!: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
+  private readonly heartbeatIntervalMs = this.readEnvNumber(
+    'CHAT_WS_PING_INTERVAL_MS',
+    25000,
+  );
+  private readonly heartbeatTimeoutMs = this.readEnvNumber(
+    'CHAT_WS_PONG_TIMEOUT_MS',
+    60000,
+  );
+  private readonly heartbeatTimers = new Map<string, NodeJS.Timeout>();
+  private readonly disconnectReasons = new Map<string, string>();
+  private readonly disconnectReasonOverrides = new Map<string, string>();
+  private readonly disconnectMetrics = new Map<string, number>();
 
   constructor(private readonly chatService: ChatService) {}
 
@@ -59,6 +72,11 @@ export class ChatGateway {
 
     client.data.coupleId = coupleId;
     client.data.userId = userId;
+    client.data.lastSeenAtMs = Date.now();
+
+    this.registerDisconnectHandlers(client);
+    this.startHeartbeat(client);
+
     await client.join(roomForCouple(coupleId));
 
     client.emit(CHAT_EVENTS.connected, {
@@ -71,12 +89,30 @@ export class ChatGateway {
   }
 
   handleDisconnect(client: ChatSocket) {
-    this.logger.log(`Client ${client.id} disconnected`);
+    this.stopHeartbeat(client.id);
+    const reason =
+      this.disconnectReasonOverrides.get(client.id) ??
+      this.disconnectReasons.get(client.id) ??
+      'unknown';
+    this.recordDisconnectMetric(reason);
+    this.logger.warn(
+      `Client ${client.id} disconnected (${reason}) for couple ${
+        client.data.coupleId ?? 'unknown'
+      }`,
+    );
+    this.disconnectReasons.delete(client.id);
+    this.disconnectReasonOverrides.delete(client.id);
   }
 
   @SubscribeMessage(CHAT_EVENTS.ping)
   handlePing(@ConnectedSocket() client: ChatSocket) {
+    this.touchHeartbeat(client);
     client.emit(CHAT_EVENTS.pong, { ts: Date.now() });
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.pong)
+  handlePong(@ConnectedSocket() client: ChatSocket) {
+    this.touchHeartbeat(client);
   }
 
   @SubscribeMessage(CHAT_EVENTS.send)
@@ -85,6 +121,7 @@ export class ChatGateway {
     @ConnectedSocket() client: ChatSocket,
   ) {
     this.ensurePayloadMatchesClient(payload, client);
+    this.touchHeartbeat(client);
 
     if (payload.kind === ChatMessageKind.TEXT && !payload.text) {
       throw new WsException('Text message requires text.');
@@ -129,5 +166,57 @@ export class ChatGateway {
     if (client.data.userId && payload.senderUserId !== client.data.userId) {
       throw new WsException('Payload senderUserId does not match connection.');
     }
+  }
+
+  private registerDisconnectHandlers(client: ChatSocket) {
+    client.on('disconnecting', (reason) => {
+      this.disconnectReasons.set(client.id, reason ?? 'unknown');
+    });
+  }
+
+  private startHeartbeat(client: ChatSocket) {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const lastSeen = client.data.lastSeenAtMs ?? now;
+
+      if (now - lastSeen > this.heartbeatTimeoutMs) {
+        const timeoutMs = now - lastSeen;
+        this.disconnectReasonOverrides.set(client.id, 'heartbeat-timeout');
+        this.logger.warn(
+          `Client ${client.id} heartbeat timeout after ${timeoutMs}ms; disconnecting.`,
+        );
+        client.disconnect(true);
+        return;
+      }
+
+      client.emit(CHAT_EVENTS.ping, { ts: now });
+    }, this.heartbeatIntervalMs);
+
+    this.heartbeatTimers.set(client.id, timer);
+  }
+
+  private stopHeartbeat(clientId: string) {
+    const timer = this.heartbeatTimers.get(clientId);
+    if (timer) clearInterval(timer);
+    this.heartbeatTimers.delete(clientId);
+  }
+
+  private touchHeartbeat(client: ChatSocket) {
+    client.data.lastSeenAtMs = Date.now();
+  }
+
+  private readEnvNumber(key: string, fallback: number) {
+    const raw = process.env[key];
+    if (!raw) return fallback;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value <= 0) return fallback;
+    return value;
+  }
+
+  private recordDisconnectMetric(reason: string) {
+    const current = this.disconnectMetrics.get(reason) ?? 0;
+    const next = current + 1;
+    this.disconnectMetrics.set(reason, next);
+    this.logger.debug(`Disconnect count for ${reason}: ${next}`);
   }
 }
