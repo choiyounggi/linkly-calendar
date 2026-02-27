@@ -274,7 +274,7 @@ export default function ChatTab() {
     });
 
     socketRef.current = socket;
-    setConnectionStatus("connecting");
+    queueMicrotask(() => setConnectionStatus("connecting"));
 
     const handleConnect = () => {
       clearReconnectTimer();
