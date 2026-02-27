@@ -158,7 +158,7 @@ curl --request POST \
 - **CoupleInvite**: Invitation/request flow (invite → accept/decline/expire)
 - **CalendarEvent**: Shared couple events (title/place/expectedSchedule/detail + legacy description) + optional meetup point (meetupLat/meetupLng/meetupName/meetupNote)
 - **GalleryPhoto**: Shared gallery photos (stored in DB table `Photo`)
-- **ChatMessage**: Couple chat messages (TEXT/IMAGE, ms timestamp)
+- **ChatMessage**: Couple chat messages (encrypted payload: ciphertext/iv/tag + keyVersion, ms timestamp)
 
 **Migrations**
 
