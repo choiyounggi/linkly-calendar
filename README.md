@@ -21,6 +21,10 @@ A shared calendar experience for couples to manage day‑to‑day plans, celebra
 - **Web**: Next.js
 - **API**: NestJS
 
+## 🚍 Transit Routing
+
+- Tmap Transit API spec: [`docs/transit/tmap.md`](docs/transit/tmap.md)
+
 ## ✅ Current Status
 - **Login UI implemented** (social auth shells)
 - **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
