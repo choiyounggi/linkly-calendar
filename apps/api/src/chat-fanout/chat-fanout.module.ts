@@ -7,5 +7,6 @@ import { ChatGateway } from './chat.gateway';
 @Module({
   imports: [RedisModule],
   providers: [ChatFanoutQueue, ChatFanoutWorker, ChatGateway],
+  exports: [ChatFanoutQueue],
 })
 export class ChatFanoutModule {}

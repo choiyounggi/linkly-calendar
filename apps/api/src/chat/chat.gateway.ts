@@ -8,6 +8,7 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import type { DefaultEventsMap, Server, Socket } from 'socket.io';
+import { ChatService } from './chat.service';
 
 type ChatSocketData = {
   coupleId?: string;
@@ -43,6 +44,8 @@ export class ChatGateway {
 
   private readonly logger = new Logger(ChatGateway.name);
 
+  constructor(private readonly chatService: ChatService) {}
+
   async handleConnection(client: ChatSocket) {
     const { coupleId, userId } = this.readHandshake(client);
 
@@ -77,7 +80,7 @@ export class ChatGateway {
   }
 
   @SubscribeMessage(CHAT_EVENTS.send)
-  handleSend(
+  async handleSend(
     @MessageBody() payload: ChatSendDto,
     @ConnectedSocket() client: ChatSocket,
   ) {
@@ -91,19 +94,11 @@ export class ChatGateway {
       throw new WsException('Image message requires imageUrl.');
     }
 
-    const message = {
-      id: payload.clientMessageId ?? `tmp-${Date.now()}`,
-      coupleId: payload.coupleId,
-      senderUserId: payload.senderUserId,
-      kind: payload.kind,
-      text: payload.text ?? null,
-      imageUrl: payload.imageUrl ?? null,
-      sentAtMs: payload.sentAtMs ?? Date.now(),
-    };
+    const message = await this.chatService.createMessage(payload);
 
     this.server
       .to(roomForCouple(payload.coupleId))
-      .emit(CHAT_EVENTS.message, message);
+      .emit(CHAT_EVENTS.message, { messageId: message.id });
 
     return { ok: true, message };
   }
