@@ -13,7 +13,8 @@
     "prisma:generate": "prisma generate",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "init:env": "tsx scripts/init-local-env.ts"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
