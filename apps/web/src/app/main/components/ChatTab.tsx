@@ -10,6 +10,7 @@ import {
   type CSSProperties,
 } from "react";
 import { Plus, Send } from "lucide-react";
+import { io } from "socket.io-client";
 import styles from "./ChatTab.module.css";
 
 type ChatMessage = {
@@ -19,6 +20,23 @@ type ChatMessage = {
   kind: "text" | "image";
   text?: string;
   imageSrc?: string;
+};
+
+type ApiChatMessage = {
+  id: string;
+  coupleId: string;
+  senderUserId: string;
+  kind: "TEXT" | "IMAGE";
+  text?: string | null;
+  imageUrl?: string | null;
+  sentAtMs?: number;
+};
+
+const CHAT_NAMESPACE = "/ws/chat";
+const CHAT_EVENTS = {
+  connected: "chat:connected",
+  error: "chat:error",
+  message: "chat:message",
 };
 
 const seedMessages: Array<Pick<ChatMessage, "sender" | "kind" | "text" | "imageSrc">> = [
@@ -60,6 +78,29 @@ const buildDummyMessages = () => {
   return messages;
 };
 
+const resolveChatIdentity = () => {
+  if (typeof window === "undefined") {
+    return { coupleId: "demo-couple", userId: "demo-user" };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const storageCoupleId = window.localStorage.getItem("coupleId");
+  const storageUserId = window.localStorage.getItem("userId");
+
+  return {
+    coupleId: params.get("coupleId") ?? storageCoupleId ?? "demo-couple",
+    userId: params.get("userId") ?? storageUserId ?? "demo-user",
+  };
+};
+
+const createClientMessageId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 export default function ChatTab() {
   const [message, setMessage] = useState("");
   const [keyboardInset, setKeyboardInset] = useState(0);
@@ -72,7 +113,19 @@ export default function ChatTab() {
   const previousMessageCountRef = useRef(0);
   const hasInitialScrollRef = useRef(false);
 
-  const [allMessages, setAllMessages] = useState<ChatMessage[]>(() => buildDummyMessages());
+  const { coupleId, userId } = useMemo(() => resolveChatIdentity(), []);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+  const chatApiUrl = apiBaseUrl ? `${apiBaseUrl}/chat/send` : "/chat/send";
+  const chatSocketUrl = apiBaseUrl ? `${apiBaseUrl}${CHAT_NAMESPACE}` : CHAT_NAMESPACE;
+
+  const initialMessages = useMemo(
+    () => (process.env.NODE_ENV === "development" ? buildDummyMessages() : []),
+    []
+  );
+
+  const [allMessages, setAllMessages] = useState<ChatMessage[]>(() => initialMessages);
+  const seenMessageIdsRef = useRef(new Set(initialMessages.map((item) => item.id)));
+
   const sortedMessages = useMemo(
     () => [...allMessages].sort((a, b) => a.sentAtMs - b.sentAtMs),
     [allMessages]
@@ -87,6 +140,54 @@ export default function ChatTab() {
     () => sortedMessages.slice(startIndex),
     [sortedMessages, startIndex]
   );
+
+  const appendMessage = useCallback((nextMessage: ChatMessage) => {
+    setAllMessages((prev) => {
+      if (seenMessageIdsRef.current.has(nextMessage.id)) {
+        return prev;
+      }
+
+      seenMessageIdsRef.current.add(nextMessage.id);
+      return [...prev, nextMessage];
+    });
+  }, []);
+
+  const handleIncomingMessage = useCallback(
+    (payload: ApiChatMessage) => {
+      if (!payload?.id) return;
+
+      appendMessage({
+        id: payload.id,
+        sender: payload.senderUserId === userId ? "me" : "partner",
+        sentAtMs: payload.sentAtMs ?? Date.now(),
+        kind: payload.kind === "IMAGE" ? "image" : "text",
+        text: payload.text ?? undefined,
+        imageSrc: payload.imageUrl ?? undefined,
+      });
+    },
+    [appendMessage, userId]
+  );
+
+  useEffect(() => {
+    const socket = io(chatSocketUrl, {
+      transports: ["websocket"],
+      auth: { coupleId, userId },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: Infinity,
+    });
+
+    socket.on(CHAT_EVENTS.message, handleIncomingMessage);
+    socket.on(CHAT_EVENTS.error, (payload) => {
+      console.warn("Chat socket error", payload);
+    });
+
+    return () => {
+      socket.off(CHAT_EVENTS.message, handleIncomingMessage);
+      socket.off(CHAT_EVENTS.error);
+      socket.disconnect();
+    };
+  }, [chatSocketUrl, coupleId, userId, handleIncomingMessage]);
 
   useLayoutEffect(() => {
     const inputBar = inputBarRef.current;
@@ -109,10 +210,7 @@ export default function ChatTab() {
 
     const viewport = window.visualViewport;
     const updateInset = () => {
-      const inset = Math.max(
-        0,
-        window.innerHeight - viewport.height - viewport.offsetTop
-      );
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
       setKeyboardInset(inset);
     };
 
@@ -186,33 +284,64 @@ export default function ChatTab() {
     previousMessageCountRef.current = messageCount;
   }, [startIndex, sortedMessages.length]);
 
-  const appendMessage = useCallback((nextMessage: ChatMessage) => {
-    setAllMessages((prev) => [...prev, nextMessage]);
-  }, []);
+  const sendChatMessage = useCallback(
+    async ({
+      text,
+      kind = "TEXT",
+      imageUrl,
+    }: {
+      text?: string;
+      kind?: "TEXT" | "IMAGE";
+      imageUrl?: string;
+    }) => {
+      const clientMessageId = createClientMessageId();
+      const sentAtMs = Date.now();
+
+      appendMessage({
+        id: clientMessageId,
+        sender: "me",
+        sentAtMs,
+        kind: kind === "IMAGE" ? "image" : "text",
+        text: text ?? undefined,
+        imageSrc: imageUrl ?? undefined,
+      });
+
+      try {
+        const response = await fetch(chatApiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            coupleId,
+            senderUserId: userId,
+            kind,
+            text,
+            imageUrl,
+            clientMessageId,
+            sentAtMs,
+          }),
+        });
+
+        if (!response.ok) {
+          console.warn("Failed to send chat message", response.statusText);
+        }
+      } catch (error) {
+        console.warn("Failed to send chat message", error);
+      }
+    },
+    [appendMessage, chatApiUrl, coupleId, userId]
+  );
 
   const handleSend = useCallback(() => {
     const trimmed = message.trim();
     if (!trimmed) return;
 
-    appendMessage({
-      id: `msg-${Date.now()}`,
-      sender: "me",
-      sentAtMs: Date.now(),
-      kind: "text",
-      text: trimmed,
-    });
+    void sendChatMessage({ text: trimmed, kind: "TEXT" });
     setMessage("");
-  }, [appendMessage, message]);
+  }, [message, sendChatMessage]);
 
-  const handleAddMessage = useCallback(() => {
-    appendMessage({
-      id: `msg-${Date.now()}-partner`,
-      sender: "partner",
-      sentAtMs: Date.now(),
-      kind: "text",
-      text: "새 메시지가 도착했어요!",
-    });
-  }, [appendMessage]);
+  const handleQuickMessage = useCallback(() => {
+    void sendChatMessage({ text: "사진은 곧 공유할게!" });
+  }, [sendChatMessage]);
 
   return (
     <div
@@ -260,7 +389,7 @@ export default function ChatTab() {
           type="button"
           className={styles.iconButton}
           aria-label="Add"
-          onClick={handleAddMessage}
+          onClick={handleQuickMessage}
         >
           <Plus className={styles.icon} />
         </button>
