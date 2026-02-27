@@ -142,12 +142,16 @@ pnpm dev
 
 > `pnpm dev` now starts the local infra automatically (`docker compose up -d`).
 
+The API loads environment variables from `.env.local` first, then `.env`.
+Use `.env.local` for developer-specific secrets and keep `.env` shared.
+
 ### Local Services (Docker)
 
 If you want to manage infra manually:
 
 ```bash
 cp .env.example .env
+# or: cp .env.example .env.local
 
 pnpm infra:up
 ```
