@@ -68,6 +68,16 @@ curl --request GET \
   - `CHAT_ENCRYPTION_KEY` (legacy fallback): single base64/hex key for the active version
 - Keys must be **32 bytes** (base64 or 64-char hex).
 
+### Chat WebSocket Heartbeat
+
+The chat gateway sends periodic `chat:ping` events and expects `chat:pong` replies.
+Sockets are disconnected if a pong is not received within the timeout window.
+
+Environment variables (optional):
+
+- `CHAT_WS_PING_INTERVAL_MS` (default `25000`)
+- `CHAT_WS_PONG_TIMEOUT_MS` (default `60000`)
+
 ## ✅ Current Status
 - **Login UI implemented** (social auth shells)
 - **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
