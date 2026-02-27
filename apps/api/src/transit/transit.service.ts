@@ -1,20 +1,24 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import type Redis from 'ioredis';
 import crypto from 'node:crypto';
+import { DeparturesComputeDto } from './dto/departures-compute.dto';
+import { RouteComputeDto } from './dto/route-compute.dto';
 
 type TransitRequestPayload = Record<string, unknown>;
-
-type TransitDeparturesRequest = TransitRequestPayload & {
-  arrivalBy?: boolean;
-  arrivalTime?: string;
-  departureTime?: string;
-};
 
 const TMAP_TRANSIT_URL = 'https://apis.openapi.sk.com/transit/routes';
 const DEFAULT_BUCKET_MINUTES = 5;
 const DEFAULT_TTL_MIN_SECONDS = 120;
 const DEFAULT_TTL_MAX_SECONDS = 300;
 const DEFAULT_HTTP_TIMEOUT_MS = 12_000;
+const KST_OFFSET_MINUTES = 9 * 60;
 
 @Injectable()
 export class TransitService implements OnModuleDestroy {
@@ -51,28 +55,39 @@ export class TransitService implements OnModuleDestroy {
     }
   }
 
-  async computeRoute(payload: TransitRequestPayload): Promise<unknown> {
-    return this.fetchWithCache('route', payload);
+  async computeRoute(payload: RouteComputeDto): Promise<unknown> {
+    const { origin, destination, arrivalTime, bucketMinutes } = payload;
+    const tmapPayload: TransitRequestPayload = {
+      origin,
+      destination,
+    };
+
+    if (arrivalTime) {
+      tmapPayload.reqDttm = arrivalTime;
+    }
+
+    return this.fetchWithCache('route', tmapPayload, {
+      arrivalTime,
+      bucketMinutes,
+    });
   }
 
-  async computeDepartures(payload: TransitDeparturesRequest): Promise<unknown> {
-    const { arrivalBy, arrivalTime, departureTime, ...tmapPayload } = payload;
+  async computeDepartures(payload: DeparturesComputeDto): Promise<unknown> {
+    const { originA, originB, destination, arrivalTime, bucketMinutes } =
+      payload;
+    const tmapPayload: TransitRequestPayload = {
+      originA,
+      originB,
+      destination,
+    };
 
-    // NOTE: The official Tmap Transit docs only show `reqDttm` as the request time.
-    // Arrival-by support is not clearly documented in public docs, so we map
-    // arrivalBy + arrivalTime/departureTime into `reqDttm` as a best-effort.
-    // Docs: https://transit.tmapmobility.com/guide/procedure
-    if (!('reqDttm' in tmapPayload)) {
-      const requestedTime = arrivalBy ? arrivalTime : departureTime;
-      if (requestedTime) {
-        tmapPayload.reqDttm = requestedTime;
-      }
+    if (arrivalTime) {
+      tmapPayload.reqDttm = arrivalTime;
     }
 
     return this.fetchWithCache('departures', tmapPayload, {
-      arrivalBy,
       arrivalTime,
-      departureTime,
+      bucketMinutes,
     });
   }
 
@@ -81,12 +96,12 @@ export class TransitService implements OnModuleDestroy {
     payload: TransitRequestPayload,
     extraKeyData: TransitRequestPayload = {},
   ): Promise<unknown> {
-    const bucketKey = this.getBucketKey(payload, extraKeyData);
+    const bucketInfo = this.getBucketInfo(payload, extraKeyData);
     const cacheKey = this.buildCacheKey(
       scope,
       payload,
       extraKeyData,
-      bucketKey,
+      bucketInfo,
     );
 
     const cached = await this.getCache(cacheKey);
@@ -102,26 +117,39 @@ export class TransitService implements OnModuleDestroy {
   }
 
   private async callTmap(payload: TransitRequestPayload): Promise<unknown> {
-    const response = await fetch(TMAP_TRANSIT_URL, {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        appKey: this.appKey,
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(this.httpTimeoutMs),
-    });
+    let response: Awaited<ReturnType<typeof fetch>>;
+    try {
+      response = await fetch(TMAP_TRANSIT_URL, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          appKey: this.appKey,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(this.httpTimeoutMs),
+      });
+    } catch (error) {
+      this.logger.error('Tmap transit API request failed', error as Error);
+      throw new BadGatewayException('Tmap transit API request failed');
+    }
 
     if (!response.ok) {
-      const errorBody = await response.text();
+      const errorBody = await response.text().catch(() => '');
       this.logger.error(
         `Tmap transit API failed (${response.status}) ${errorBody}`,
       );
-      throw new Error('Tmap transit API request failed');
+      throw new BadGatewayException('Tmap transit API request failed');
     }
 
-    return (await response.json()) as unknown;
+    const responseBody = await response.text();
+    try {
+      const parsed = JSON.parse(responseBody) as unknown;
+      return this.sanitizeTmapResponse(parsed);
+    } catch (error) {
+      this.logger.error('Failed to parse Tmap response', error as Error);
+      throw new BadGatewayException('Tmap transit API response invalid');
+    }
   }
 
   private async getCache(key: string): Promise<unknown> {
@@ -144,30 +172,55 @@ export class TransitService implements OnModuleDestroy {
     }
   }
 
-  private getBucketKey(
+  private getBucketInfo(
     payload: TransitRequestPayload,
     extraKeyData: TransitRequestPayload,
   ) {
+    const bucketMinutes = this.resolveBucketMinutes(extraKeyData.bucketMinutes);
     const timeCandidate = this.extractRequestTime(payload, extraKeyData);
     const baseTime = timeCandidate ? timeCandidate.getTime() : Date.now();
-    const bucketMs = this.bucketMinutes * 60 * 1000;
-    return Math.floor(baseTime / bucketMs).toString();
+    const bucketMs = bucketMinutes * 60 * 1000;
+    const bucketStartMs = Math.floor(baseTime / bucketMs) * bucketMs;
+    return {
+      bucketKey: bucketStartMs.toString(),
+      bucketStartMs,
+      bucketMinutes,
+    };
+  }
+
+  private resolveBucketMinutes(value: unknown) {
+    if (value == null) {
+      if (!Number.isFinite(this.bucketMinutes) || this.bucketMinutes < 1) {
+        throw new BadRequestException('Invalid cache bucket configuration');
+      }
+      return this.bucketMinutes;
+    }
+
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new BadRequestException('Invalid bucketMinutes value');
+    }
+
+    const rounded = Math.floor(value);
+    if (rounded < 1) {
+      throw new BadRequestException('Invalid bucketMinutes value');
+    }
+
+    return rounded;
   }
 
   private extractRequestTime(
     payload: TransitRequestPayload,
     extraKeyData: TransitRequestPayload,
   ) {
-    const candidates = [
-      payload.reqDttm,
-      extraKeyData.arrivalTime,
-      extraKeyData.departureTime,
-    ];
+    const candidates = [payload.reqDttm, extraKeyData.arrivalTime];
 
     for (const candidate of candidates) {
       if (typeof candidate === 'string') {
         const parsed = this.parseTmapDateTime(candidate);
-        if (parsed) return parsed;
+        if (!parsed) {
+          throw new BadRequestException('Invalid arrivalTime value');
+        }
+        return parsed;
       }
     }
 
@@ -188,18 +241,71 @@ export class TransitService implements OnModuleDestroy {
         ? Number.parseInt(normalized.slice(12, 14), 10)
         : 0;
 
-    return new Date(year, month, day, hour, minute, second);
+    const utcMs =
+      Date.UTC(year, month, day, hour, minute, second) -
+      KST_OFFSET_MINUTES * 60 * 1000;
+    return new Date(utcMs);
   }
 
   private buildCacheKey(
     scope: string,
     payload: TransitRequestPayload,
     extraKeyData: TransitRequestPayload,
-    bucketKey: string,
+    bucketInfo: {
+      bucketKey: string;
+      bucketStartMs: number;
+      bucketMinutes: number;
+    },
   ) {
-    const raw = this.stableStringify({ payload, extraKeyData });
+    const keyPayload = this.omitKeys(payload, ['reqDttm']);
+    const keyExtra = this.omitKeys(extraKeyData, ['arrivalTime']);
+    const raw = this.stableStringify({
+      payload: keyPayload,
+      extraKeyData: keyExtra,
+      bucketStartMs: bucketInfo.bucketStartMs,
+      bucketMinutes: bucketInfo.bucketMinutes,
+    });
     const digest = crypto.createHash('sha256').update(raw).digest('hex');
-    return `transit:${scope}:bucket:${bucketKey}:${digest}`;
+    return `transit:${scope}:bucket:${bucketInfo.bucketKey}:${digest}`;
+  }
+
+  private omitKeys(
+    value: TransitRequestPayload,
+    keys: string[],
+  ): TransitRequestPayload {
+    const entries = Object.entries(value).filter(
+      ([key]) => !keys.includes(key),
+    );
+    return Object.fromEntries(entries) as TransitRequestPayload;
+  }
+
+  private sanitizeTmapResponse(body: unknown): unknown {
+    if (!body || typeof body !== 'object') return body;
+
+    const metaData = (body as Record<string, unknown>).metaData as
+      | Record<string, unknown>
+      | undefined;
+    const plan = metaData?.plan as Record<string, unknown> | undefined;
+    const itineraries = plan?.itineraries;
+    if (!Array.isArray(itineraries)) return body;
+
+    const safeItineraries = itineraries.map((itinerary) => {
+      if (!itinerary || typeof itinerary !== 'object') return null;
+      const typed = itinerary as Record<string, unknown>;
+      return {
+        totalTime: typed.totalTime,
+        totalWalkTime: typed.totalWalkTime,
+        transferCount: typed.transferCount,
+      };
+    });
+
+    return {
+      metaData: {
+        plan: {
+          itineraries: safeItineraries,
+        },
+      },
+    };
   }
 
   private stableStringify(value: unknown): string {
