@@ -57,6 +57,16 @@ curl --request GET \
   --url "http://localhost:3000/chat/messages?coupleId=couple_123&userId=user_123&limit=50"
 ```
 
+**GET `/chat/identity`**
+
+로컬/개발 환경에서 시드된 "현재 사용자" 식별자를 조회합니다.
+`providerUserId`를 생략하면 기본값은 `seed_user_1`입니다.
+
+```bash
+curl --request GET \
+  --url "http://localhost:3000/chat/identity?providerUserId=seed_user_1"
+```
+
 ### 채팅 보안 메모
 - 채팅 페이로드는 저장 시 **AES-256-GCM**으로 암호화됩니다.
 - 환경 변수로 키를 설정합니다.
@@ -169,6 +179,7 @@ CHAT_ENCRYPTION_KEY_VERSION=1
 
 ```bash
 cp .env.example .env
+# 또는: cp .env.example .env.local
 pnpm infra:up
 ```
 
