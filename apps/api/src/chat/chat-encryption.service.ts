@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import crypto from 'crypto';
 
 export type EncryptedPayload = {
@@ -10,18 +11,21 @@ export type EncryptedPayload = {
 
 @Injectable()
 export class ChatEncryptionService {
+  private readonly logger = new Logger(ChatEncryptionService.name);
   private readonly keys = new Map<number, Buffer>();
   private readonly activeVersion: number;
 
-  constructor() {
-    const activeVersion = Number.parseInt(
-      process.env.CHAT_ENCRYPTION_KEY_VERSION ?? '1',
-      10,
-    );
+  constructor(private readonly configService: ConfigService) {
+    const activeVersionRaw = this.getEnv('CHAT_ENCRYPTION_KEY_VERSION');
+    const activeVersion = Number.parseInt(activeVersionRaw ?? '1', 10);
     this.activeVersion = Number.isNaN(activeVersion) ? 1 : activeVersion;
 
-    const keysEnv = process.env.CHAT_ENCRYPTION_KEYS?.trim();
-    const legacyKey = process.env.CHAT_ENCRYPTION_KEY?.trim();
+    const keysEnv = this.getEnv('CHAT_ENCRYPTION_KEYS')?.trim();
+    const legacyKey = this.getEnv('CHAT_ENCRYPTION_KEY')?.trim();
+
+    this.logger.log(
+      `Chat encryption env loaded (CHAT_ENCRYPTION_KEYS present: ${Boolean(keysEnv)}).`,
+    );
 
     if (keysEnv) {
       for (const entry of keysEnv.split(',').map((value) => value.trim())) {
@@ -39,7 +43,7 @@ export class ChatEncryptionService {
 
     if (!this.keys.size) {
       throw new Error(
-        'CHAT_ENCRYPTION_KEYS or CHAT_ENCRYPTION_KEY must be set.',
+        'Chat encryption key is missing. Checked config/env vars: CHAT_ENCRYPTION_KEYS, CHAT_ENCRYPTION_KEY. Run `pnpm init:env` and set one of these variables.',
       );
     }
 
@@ -103,5 +107,9 @@ export class ChatEncryptionService {
     }
 
     return buffer;
+  }
+
+  private getEnv(name: string): string | undefined {
+    return this.configService.get<string>(name) ?? process.env[name];
   }
 }

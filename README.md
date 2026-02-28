@@ -1,40 +1,39 @@
 # Linkly Calendar
 
-A **Couples Calendar Web App** designed for both **mobile and desktop**, helping partners stay connected with shared schedules and memories.
+모바일/데스크톱에서 모두 사용할 수 있는 **커플 캘린더 웹앱**입니다.
+공유 일정과 추억을 한곳에서 관리해, 두 사람이 더 잘 연결되도록 돕습니다.
 
-## 💡 Concept
-A shared calendar experience for couples to manage day‑to‑day plans, celebrate milestones, and keep in touch — all in one place.
+## 💡 콘셉트
+커플이 일상 일정을 함께 관리하고, 기념일을 챙기고, 대화를 이어갈 수 있는 통합 경험을 제공합니다.
 
-## ✨ Key Features
-- **Calendar**: Shared schedules and events
-- **Anniversary**: Track important dates and milestones
-- **Chat**: Lightweight messaging for quick updates
-- **Gallery**: Shared memories and photos
-- **(Future) AI**: Smart suggestions and insights
+## ✨ 주요 기능
+- **캘린더**: 공유 일정/이벤트 관리
+- **기념일**: 중요한 날짜와 마일스톤 추적
+- **채팅**: 빠른 소통을 위한 경량 메시징
+- **갤러리**: 사진/추억 공유
+- **(예정) AI**: 스마트 추천 및 인사이트
 
-## 🎨 Design Direction
-- **Clean & Simple** UI
-- **Bright Yellow Theme** 🍌
+## 🎨 디자인 방향
+- 깔끔하고 단순한 UI
+- 밝은 옐로우 테마 🍌
 
-## 🧱 Architecture
-- **Monorepo**: Turborepo
-- **Web**: Next.js
+## 🧱 아키텍처
+- **모노레포**: Turborepo
+- **웹**: Next.js
 - **API**: NestJS
 
-## 🚍 Transit Routing
+## 🚍 대중교통 라우팅
+- Tmap Transit API 명세: [`docs/transit/tmap.md`](docs/transit/tmap.md)
 
-- Tmap Transit API spec: [`docs/transit/tmap.md`](docs/transit/tmap.md)
+## 💬 채팅 팬아웃 (BullMQ + Redis Pub/Sub)
+채팅 메시지는 큐 + Pub/Sub 브리지로 팬아웃됩니다.
 
-## 💬 Chat Fanout (BullMQ + Redis Pub/Sub)
+1. **API**가 BullMQ `chat-fanout` 큐에 `{ coupleId, messageId }` 작업을 적재합니다.
+2. **워커**가 작업을 소비해 Redis 채널 `chat:couple:{coupleId}`로 발행합니다.
+3. **WebSocket 게이트웨이**가 Redis를 구독하고 `couple:{coupleId}` 룸에 `chat:message`를 전송합니다.
+4. **클라이언트**는 `messageId` 기준으로 중복을 제거합니다(중복 작업 허용).
 
-Chat messages are fanned out through a queue + Pub/Sub bridge:
-
-1. **API** enqueues a job in BullMQ queue `chat-fanout` with `{ coupleId, messageId }`.
-2. **Worker** consumes the job and publishes to Redis channel `chat:couple:{coupleId}`.
-3. **WebSocket gateway** subscribes to Redis and emits `chat:message` to room `couple:{coupleId}`.
-4. **Clients** de-dupe by `messageId` (duplicate jobs are OK).
-
-### Chat API (Encrypted)
+### 채팅 API (암호화)
 
 **POST `/chat/messages`**
 
@@ -46,7 +45,7 @@ curl --request POST \
     "coupleId": "couple_123",
     "senderUserId": "user_123",
     "kind": "TEXT",
-    "text": "Hello!",
+    "text": "안녕!",
     "sentAtMs": 1700000000000
   }'
 ```
@@ -60,126 +59,151 @@ curl --request GET \
 
 **GET `/chat/identity`**
 
-Resolve the seeded "current user" identity for local/dev usage. Defaults to `seed_user_1` when
-`providerUserId` is omitted.
+로컬/개발 환경에서 시드된 "현재 사용자" 식별자를 조회합니다.
+`providerUserId`를 생략하면 기본값은 `seed_user_1`입니다.
 
 ```bash
 curl --request GET \
   --url "http://localhost:3000/chat/identity?providerUserId=seed_user_1"
 ```
 
-### Chat Security Notes
+### 채팅 보안 메모
+- 채팅 페이로드는 저장 시 **AES-256-GCM**으로 암호화됩니다.
+- 환경 변수로 키를 설정합니다.
+  - `CHAT_ENCRYPTION_KEYS`(권장): `version:base64Key` 쌍을 쉼표로 구분
+    - 예: `CHAT_ENCRYPTION_KEYS=1:BASE64_KEY,2:BASE64_KEY`
+  - `CHAT_ENCRYPTION_KEY_VERSION`: 신규 메시지에 사용할 활성 버전(기본 `1`)
+  - `CHAT_ENCRYPTION_KEY`(레거시): 활성 버전 단일 base64/hex 키
+- 키 길이는 반드시 **32바이트**여야 합니다(base64 또는 64자 hex).
 
-- Chat payloads are encrypted at rest using **AES-256-GCM**.
-- Configure keys via environment variables:
-  - `CHAT_ENCRYPTION_KEYS` (preferred): comma-delimited `version:base64Key` pairs
-    - Example: `CHAT_ENCRYPTION_KEYS=1:BASE64_KEY,2:BASE64_KEY`
-  - `CHAT_ENCRYPTION_KEY_VERSION`: active version for new messages (default `1`)
-  - `CHAT_ENCRYPTION_KEY` (legacy fallback): single base64/hex key for the active version
-- Keys must be **32 bytes** (base64 or 64-char hex).
+### 채팅 WebSocket 하트비트
+게이트웨이는 주기적으로 `chat:ping`을 보내고 `chat:pong` 응답을 기대합니다.
+타임아웃 내 pong이 없으면 소켓 연결을 종료합니다.
 
-### Chat WebSocket Heartbeat
+선택 환경 변수:
+- `CHAT_WS_PING_INTERVAL_MS` (기본 `25000`)
+- `CHAT_WS_PONG_TIMEOUT_MS` (기본 `60000`)
 
-The chat gateway sends periodic `chat:ping` events and expects `chat:pong` replies.
-Sockets are disconnected if a pong is not received within the timeout window.
-
-Environment variables (optional):
-
-- `CHAT_WS_PING_INTERVAL_MS` (default `25000`)
-- `CHAT_WS_PONG_TIMEOUT_MS` (default `60000`)
-
-## ✅ Current Status
-- **Login UI implemented** (social auth shells)
-- **Main layout + bottom tabs**: Calendar / Chat / Photos / Settings
-- **Calendar tab**: FullCalendar with modal create/edit/delete (local state)
-- **Chat tab**: UI skeleton + keyboard‑aware, full‑width input bar (local state)
-- **Photos tab**: header + grid + fullscreen viewer + select‑mode delete + local upload + infinite scroll (local state)
-- **API**: `/health` endpoint checks Postgres + Redis availability
-- **DB**: Prisma schema v1 + initial migration (`init_schema_v1`)
+## ✅ 현재 상태
+- 로그인 UI 구현(소셜 인증 스켈레톤)
+- 메인 레이아웃 + 하단 탭: Calendar / Chat / Photos / Settings
+- Calendar 탭: FullCalendar + 모달 생성/수정/삭제(로컬 상태)
+- Chat 탭: UI 스켈레톤 + 키보드 대응 전폭 입력바(로컬 상태)
+- Photos 탭: 헤더 + 그리드 + 전체화면 뷰어 + 선택 삭제 + 로컬 업로드 + 무한 스크롤(로컬 상태)
+- API: `/health` 엔드포인트(Postgres + Redis 상태 확인)
+- DB: Prisma 스키마 v1 + 초기 마이그레이션(`init_schema_v1`)
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 기술 스택
+- **모노레포**: [Turborepo](https://turbo.build/)
+- **패키지 매니저**: [PNPM](https://pnpm.io/) (v9.12.0)
+- **앱**
+  - `web`: [Next.js](https://nextjs.org/) (프론트엔드)
+  - `api`: [NestJS](https://nestjs.com/) (백엔드)
+- **데이터베이스**: PostgreSQL (Prisma)
+- **백엔드(NestJS)**
+  - 큐/캐시: `@nestjs/bullmq`, `bullmq`, `ioredis`
+  - 연동: `@googleapis/calendar`
+  - ORM: `prisma`, `@prisma/client`
+  - 검증: `zod`
+  - 인증: `passport`, `@nestjs/passport`
+- **프론트엔드(Next.js)**
+  - 캘린더 UI: `@fullcalendar/*`
+  - 폼: `react-hook-form`, `zod`
+- **패키지**
+  - `@linkly/ui`: 공통 UI 컴포넌트
+  - `@linkly/config`: 공통 설정
+  - `@linkly/shared`: 공통 유틸/타입
 
-- **Monorepo**: [Turborepo](https://turbo.build/)
-- **Package Manager**: [PNPM](https://pnpm.io/) (v9.12.0)
-- **Apps**:
-  - `web`: [Next.js](https://nextjs.org/) (Frontend)
-  - `api`: [NestJS](https://nestjs.com/) (Backend)
-- **Database**: PostgreSQL (Prisma)
-- **Backend (NestJS)**:
-  - **Queue & Cache**: `@nestjs/bullmq`, `bullmq`, `ioredis` (For schedule notifications, chat)
-  - **Integration**: `@googleapis/calendar` (Google Calendar)
-  - **ORM**: `prisma`, `@prisma/client`
-  - **Validation**: `zod` (Shared validation between FE/BE)
-  - **Auth**: `passport`, `@nestjs/passport` (Optional/Custom OAuth implementation)
-- **Frontend (Next.js)**:
-  - **Calendar UI**: `@fullcalendar/*`
-  - **Forms**: `react-hook-form`, `zod`
-- **Packages**:
-  - `@linkly/ui`: Shared UI components
-  - `@linkly/config`: Shared configuration (TypeScript, ESLint, etc.)
-  - `@linkly/shared`: Shared utilities and types
+## 🚀 시작하기
 
-## 🚀 Getting Started
-
-### Prerequisites
-
+### 사전 준비
 - Node.js (v20+)
 - PNPM (v9.12.0)
 
-### Installation
-
+### 설치
 ```bash
 pnpm install
 ```
 
-### Development
-
+### 개발 실행
 ```bash
 pnpm dev
 ```
 
-> `pnpm dev` now starts the local infra automatically (`docker compose up -d`).
+> `pnpm dev` 실행 시 로컬 인프라(`docker compose up -d`)가 자동 시작됩니다.
 
-The API loads environment variables from `.env.local` first, then `.env`.
-Use `.env.local` for developer-specific secrets and keep `.env` shared.
+API는 `.env.local`을 우선 로드하고, 이후 `.env`를 로드합니다.
+개발자 개인 비밀값은 `.env.local`에 두고 `.env`는 공통값 위주로 유지하세요.
 
-### Local Services (Docker)
+### 채팅 암호화 환경 변수 런북(API)
+API 시작 시 아래 오류가 나오면:
 
-If you want to manage infra manually:
+```text
+CHAT_ENCRYPTION_KEYS or CHAT_ENCRYPTION_KEY must be set
+```
+
+다음 절차를 따르세요.
+
+1. 환경 파일 초기화
+```bash
+pnpm init:env
+```
+
+2. 루트 `.env.local`(권장) 또는 `.env`에 변수 설정
+```bash
+# 권장(키 로테이션 지원)
+CHAT_ENCRYPTION_KEYS=1:<base64-or-64hex-key>
+CHAT_ENCRYPTION_KEY_VERSION=1
+
+# 레거시 대체
+# CHAT_ENCRYPTION_KEY=<base64-or-64hex-key>
+```
+
+3. API 재시작 (`pnpm dev` 또는 API 프로세스 재기동)
+
+참고:
+- API 환경 변수 우선순위: `.env.local` > `.env`
+- 시작 로그에는 키 존재 여부만 안전하게 출력
+- 키는 디코딩 기준 정확히 32바이트여야 함
+
+점검 체크리스트:
+- `apps/api/.env`가 아닌 **레포 루트** env 파일을 수정했는지 확인
+- `CHAT_ENCRYPTION_KEYS`는 `version:key` 쌍의 쉼표 구분 형식인지 확인
+- `CHAT_ENCRYPTION_KEY_VERSION`이 지정된 경우 해당 버전이 키 목록에 있는지 확인
+- 필요 시 `pnpm init:env` 재실행
+
+### 로컬 서비스(Docker)
+수동으로 인프라를 관리하려면:
 
 ```bash
 cp .env.example .env
-# or: cp .env.example .env.local
-
+# 또는: cp .env.example .env.local
 pnpm infra:up
 ```
 
 - Postgres: `localhost:5432`
 - Redis: `localhost:6379`
-- Default DB: `linkly` (user: `linkly`, password: `linkly_local_password`)
+- 기본 DB: `linkly` (user: `linkly`, password: `linkly_local_password`)
 
-### Health Check
-
-When the API is running (default `http://localhost:3000`):
+### 헬스 체크
+API 실행(기본 `http://localhost:3000`) 후:
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-Response example:
+예시 응답:
 
 ```json
 {"ok":true,"postgres":"ok","redis":"ok","ts":"2024-01-01T00:00:00.000Z"}
 ```
 
-### 🚍 Transit (Tmap)
-
-> Requires `TMAP_APP_KEY` in your `.env`.
+### 🚍 대중교통(Tmap)
+> `.env`에 `TMAP_APP_KEY`가 필요합니다.
 
 **POST `/v1/transit/route:compute`**
-
 ```bash
 curl --request POST \
   --url http://localhost:3000/v1/transit/route:compute \
@@ -196,7 +220,6 @@ curl --request POST \
 ```
 
 **POST `/v1/transit/departures:compute`**
-
 ```bash
 curl --request POST \
   --url http://localhost:3000/v1/transit/departures:compute \
@@ -214,63 +237,53 @@ curl --request POST \
   }'
 ```
 
-> The departures endpoint maps `arrivalBy` + `arrivalTime`/`departureTime` into
-> `reqDttm` per the public Tmap Transit docs: https://transit.tmapmobility.com/guide/procedure
+> departures 엔드포인트는 `arrivalBy` + `arrivalTime`/`departureTime`을 Tmap 공개 문서 기준 `reqDttm`으로 매핑합니다.
 
-### 🗄️ Database (Prisma)
+### 🗄️ 데이터베이스(Prisma)
+**스키마 개요**
+- **User**: 소셜/로컬 인증 + 선택적 집 위치
+- **Couple** + **CoupleMember**: 커플 등록/멤버십
+- **CoupleInvite**: 초대/수락/거절/만료 흐름
+- **CalendarEvent**: 커플 공유 이벤트 + 선택적 만남 위치
+- **GalleryPhoto**: 공유 갤러리 사진(DB `Photo` 테이블)
+- **ChatMessage**: 커플 채팅 메시지(암호화 페이로드 + 키 버전 + ms 타임스탬프)
 
-**Schema overview**
-- **User**: Social/local auth identities + optional home location (homeLat/homeLng/homeAddress/homeUpdatedAt)
-- **Couple** + **CoupleMember**: Couple registration and membership
-- **CoupleInvite**: Invitation/request flow (invite → accept/decline/expire)
-- **CalendarEvent**: Shared couple events (title/place/expectedSchedule/detail + legacy description) + optional meetup point (meetupLat/meetupLng/meetupName/meetupNote)
-- **GalleryPhoto**: Shared gallery photos (stored in DB table `Photo`)
-- **ChatMessage**: Couple chat messages (encrypted payload: ciphertext/iv/tag + keyVersion, ms timestamp)
-
-**Migrations**
-
+**마이그레이션**
 ```bash
-# Ensure DATABASE_URL is set (see .env.example)
 DATABASE_URL=postgresql://linkly:linkly_local_password@localhost:5432/linkly?schema=public \
   npx prisma migrate dev --name init_schema_v1
 
 npx prisma generate
 ```
 
-**Seed data (automatic)**
+**시드 데이터(자동)**
+`docker compose up -d` 시 `db-init` 원샷 서비스가 마이그레이션 + 시드를 수행합니다.
 
-`docker compose up -d` runs a one-shot `db-init` service that applies migrations and seeds:
+- `db-init` 컨테이너는 `/workspace/node_modules`(및 `.pnpm-store`)를 익명 볼륨으로 사용해, 컨테이너 설치물이 호스트 워크스페이스를 오염시키지 않도록 합니다.
+- 사용자: `linkly.one@example.com`, `linkly.two@example.com`
+- 커플 상태: `ACTIVE`
+- 채팅: 텍스트/이미지 메시지 샘플
+- 갤러리: 사진 2개
 
-- The `db-init` container uses **anonymous volumes** for `/workspace/node_modules` (and `.pnpm-store`) so container installs don’t write into the host workspace (prevents cross-OS/arch node_modules issues).
-
-- Users: `linkly.one@example.com`, `linkly.two@example.com`
-- Couple: status `ACTIVE`
-- Chat: a few text + image messages
-- Gallery: 2 photos
-
-To reseed:
-
+재시드:
 ```bash
 docker compose down -v
 pnpm infra:up
 ```
 
-> Note: `CoupleMember` currently has a unique constraint on `userId` to enforce **one couple per user**. Remove that constraint if multi-couple memberships are desired.
+> 참고: 현재 `CoupleMember.userId`는 **사용자당 1개 커플**을 강제하는 unique 제약이 있습니다. 다중 커플 소속이 필요하면 제약 제거가 필요합니다.
 
-### Notes / Limitations
+### 참고 / 제한사항
+- 캘린더/채팅/사진은 현재 **로컬 상태 기반**입니다(서버 영속화 미적용).
+- 사진 업로드는 클라이언트 로컬 저장 방식입니다(백엔드 저장소 미연동).
+- API 헬스체크는 env 기반 Postgres/Redis 연결을 전제로 합니다.
 
-- Calendar, chat, and photos currently use **local-only state** (no server persistence yet).
-- Photo uploads are stored locally in the client (no backend storage).
-- API health check expects Postgres + Redis to be reachable via env (`POSTGRES_HOST/PORT`, `REDIS_HOST/PORT`).
-
-### Build
-
+### 빌드
 ```bash
 pnpm build
 ```
 
-### Lint
-
+### 린트
 ```bash
 pnpm lint
 ```

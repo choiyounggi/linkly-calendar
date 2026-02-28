@@ -1,25 +1,39 @@
-# Contributing
+# 기여 가이드
 
-## Pull Request Title Format
-Use Conventional Commits for PR titles. Examples:
-- `feat: add calendar sharing`
-- `fix: handle timezone parsing`
-- `refactor: simplify schedule sync`
-- `docs: update setup instructions`
-- `chore: update tooling`
+## 언어 작성 규칙 (필수)
+이 저장소에서는 아래 항목을 **한국어로 작성**합니다.
 
-## Preferred Labels
-Please apply the following labels when relevant:
+- README 및 기타 문서의 변경 내용 정리
+- 커밋 메시지
+- PR 설명/코멘트/리뷰 코멘트
+- 코드 주석(라인 주석, 블록 주석, JSDoc)
+
+> 단, API 스펙의 고유 필드명/코드 식별자/외부 서비스 고유 명칭은 원문(영문) 유지가 가능합니다.
+
+## PR 제목 형식
+PR 제목은 Conventional Commits 형식을 사용합니다.
+
+예시:
+- `feat: 캘린더 공유 기능 추가`
+- `fix: 타임존 파싱 오류 수정`
+- `refactor: 일정 동기화 로직 단순화`
+- `docs: 설정 안내 문서 업데이트`
+- `chore: 개발 도구 버전 정리`
+
+## 권장 라벨
+해당하는 경우 아래 라벨을 설정해 주세요.
 - `needs-review`
 - `work-in-progress`
 - `bug`
 - `enhancement`
 
-## Before Opening a PR
-Run the following locally and resolve issues where possible:
+## PR 열기 전 확인
+아래 항목을 로컬에서 실행하고 가능한 문제를 해결해 주세요.
+
 ```bash
 pnpm install
 pnpm lint
 pnpm build
 ```
-Warnings are acceptable if they already exist, but do not introduce new warnings. New warnings may block a merge.
+
+기존 경고는 허용될 수 있지만, 새 경고는 추가하지 않도록 해주세요. 새 경고는 머지를 지연시킬 수 있습니다.
