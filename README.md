@@ -132,6 +132,50 @@ pnpm dev
 
 > `pnpm dev` now starts the local infra automatically (`docker compose up -d`).
 
+The API loads environment variables from `.env.local` first, then `.env`.
+Use `.env.local` for developer-specific secrets and keep `.env` shared.
+
+
+### Chat encryption env runbook (API)
+
+If API startup fails with:
+
+```
+CHAT_ENCRYPTION_KEYS or CHAT_ENCRYPTION_KEY must be set
+```
+
+use this runbook:
+
+1. Initialize env files:
+
+```bash
+pnpm init:env
+```
+
+2. Set one of these variables in repo-root `.env.local` (preferred) or `.env`:
+
+```bash
+# preferred (supports rotation)
+CHAT_ENCRYPTION_KEYS=1:<base64-or-64hex-key>
+CHAT_ENCRYPTION_KEY_VERSION=1
+
+# legacy fallback
+# CHAT_ENCRYPTION_KEY=<base64-or-64hex-key>
+```
+
+3. Restart API (`pnpm dev` or API process).
+
+Notes:
+- API env loading is deterministic from repo root with precedence: `.env.local` > `.env`.
+- Startup logs only a safe boolean for key presence: whether `CHAT_ENCRYPTION_KEYS` exists.
+- Keys must decode to exactly 32 bytes.
+
+Troubleshooting checklist:
+- Confirm you edited the **repo root** env file, not `apps/api/.env`.
+- If `CHAT_ENCRYPTION_KEYS` is set, verify format is comma-delimited `version:key` pairs (e.g. `1:...`, `2:...`).
+- If `CHAT_ENCRYPTION_KEY_VERSION` is set, ensure that version exists in `CHAT_ENCRYPTION_KEYS`.
+- Re-run `pnpm init:env` to regenerate missing defaults.
+
 ### Local Services (Docker)
 
 If you want to manage infra manually:
