@@ -1,26 +1,25 @@
-# Tmap Transit Routing Spec
+# Tmap 대중교통 라우팅 명세
 
-> **Status:** Draft (needs validation against live Tmap API)
+> **상태:** 초안 (실제 Tmap API 응답과 대조 검증 필요)
 
-This document defines how we call **Tmap Transit** for public transportation routing (arrival‑by) and what fields we consume.
+이 문서는 **Tmap Transit** 호출 방식(도착 기준 포함)과 내부에서 사용하는 필드를 정의합니다.
 
-## 1) External API (Tmap Transit)
+## 1) 외부 API (Tmap Transit)
 
-### Endpoint
+### 엔드포인트
 - **POST** `https://apis.openapi.sk.com/transit/routes`
-- Query params:
+- 쿼리 파라미터
   - `version=1`
   - `format=json`
 
-> ✅ Example: `https://apis.openapi.sk.com/transit/routes?version=1&format=json`
+예시:
+`https://apis.openapi.sk.com/transit/routes?version=1&format=json`
 
-### Authentication / Headers
-- `appKey: <TMAP_APP_KEY>` (**required**)
+### 인증 / 헤더
+- `appKey: <TMAP_APP_KEY>` (**필수**)
 - `Content-Type: application/json`
 
-### Request Parameters (we will use)
-
-We will send a JSON body with the following fields:
+### 요청 파라미터 (사용 예정)
 
 ```json
 {
@@ -38,35 +37,34 @@ We will send a JSON body with the following fields:
 }
 ```
 
-**Field notes** (confirm against Tmap docs):
-- `startX/startY`, `endX/endY`: longitude/latitude (WGS84).
-- `reqCoordType`, `resCoordType`: we use `WGS84GEO` for both.
-- `searchType`:
-  - `ARRIVAL` (arrival‑by) when `arrivalTime` is provided.
-  - `DEPARTURE` (default) when `departureTime` is provided.
-- `arrivalTime` / `departureTime`: ISO‑8601 string. Only one should be set.
-- `transportType`:
-  - `BUS_SUBWAY` (prefer bus+subway)
-  - `BUS` (bus only) **if supported**
-  - `SUBWAY` (subway only) **if supported**
-- `count`: number of route candidates to return.
-- `lang`: response language (default: `ko`).
+필드 메모(공식 문서 대조 필요):
+- `startX/startY`, `endX/endY`: 경도/위도(WGS84)
+- `reqCoordType`, `resCoordType`: 모두 `WGS84GEO` 사용
+- `searchType`
+  - `ARRIVAL`: `arrivalTime` 제공 시(도착 기준)
+  - `DEPARTURE`: `departureTime` 제공 시(출발 기준)
+- `arrivalTime` / `departureTime`: ISO-8601 문자열, 둘 중 하나만 설정
+- `transportType`
+  - `BUS_SUBWAY` (버스+지하철 우선)
+  - `BUS` (버스 전용, 지원 시)
+  - `SUBWAY` (지하철 전용, 지원 시)
+- `count`: 경로 후보 개수
+- `lang`: 응답 언어(기본 `ko`)
 
-> ⚠️ **Validation needed:** Parameter names / enums must be verified against official Tmap Transit API docs. If the API uses numeric codes instead of strings (e.g., `searchType=0/1`), update this document accordingly.
+> ⚠️ 검증 필요: 파라미터명/enum이 공식 문서와 정확히 일치하는지 확인해야 합니다. 문자열 대신 숫자 코드(`searchType=0/1`)를 쓰는 버전이면 문서를 업데이트하세요.
 
-### Response Fields We Consume
+### 사용하는 응답 필드
+첫 번째 경로(최적 경로)에서 아래 값을 사용합니다.
 
-We will parse the first route (best option) and use:
+- 총 소요 시간(분 또는 초)
+  - 도보
+  - 대기
+  - 환승 포함
+- 환승 횟수
+- 총 도보 시간
+- 요금(가능한 경우)
 
-- **Total travel time** (minutes or seconds) including:
-  - walk
-  - wait
-  - transfers
-- **Transfers count**
-- **Total walk time**
-- **Fare** (if available)
-
-Example (illustrative, schema differs by Tmap version):
+예시(버전에 따라 스키마 상이):
 
 ```json
 {
@@ -91,30 +89,30 @@ Example (illustrative, schema differs by Tmap version):
 }
 ```
 
-**Fields mapped → internal response**
+내부 응답 매핑:
 - `totalTime` → `totalTimeSec`
 - `transferCount` → `transfers`
 - `totalWalkTime` → `walkTimeSec`
 - `fare.regular.totalFare` → `fare.amount` (KRW)
 
-### Error Handling / Rate Limits
-- Treat non‑2xx responses as **UPSTREAM_FAILED**.
-- If Tmap returns an error payload, log `error.code` / `error.message` and map to:
+### 오류 처리 / 레이트 리밋
+- 2xx가 아닌 응답은 **UPSTREAM_FAILED**로 처리
+- Tmap 오류 페이로드가 있으면 `error.code` / `error.message` 로깅 후 매핑
   - `400` → `INVALID_ARGUMENT`
   - `401/403` → `AUTH_FAILED`
   - `429` → `RATE_LIMITED`
   - `5xx` → `UPSTREAM_FAILED`
-- **Rate limits:** Assume per‑appKey throttling. Use exponential backoff for `429`.
+- 레이트 리밋은 appKey 단위로 가정하고, `429` 시 지수 백오프 적용
 
 ---
 
-## 2) Internal REST Contract (Draft)
+## 2) 내부 REST 계약 (초안)
 
 ### POST `/v1/transit/departures:compute`
 
-**Purpose:** compute multiple departure options from origins A/B to a destination **arrive‑by** time.
+목적: 출발지 A/B에서 목적지까지 **도착 기준**으로 여러 출발 옵션 계산
 
-#### Request
+#### 요청
 ```json
 {
   "origins": [
@@ -127,7 +125,7 @@ Example (illustrative, schema differs by Tmap version):
 }
 ```
 
-#### Response
+#### 응답
 ```json
 {
   "results": [
@@ -151,9 +149,9 @@ Example (illustrative, schema differs by Tmap version):
 
 ### POST `/v1/transit/route:compute`
 
-**Purpose:** compute a single route between one origin and destination (arrival‑by or depart‑at).
+목적: 단일 출발지/목적지 경로 계산(도착 기준 또는 출발 기준)
 
-#### Request
+#### 요청
 ```json
 {
   "origin": { "lat": 37.4979, "lng": 127.0276 },
@@ -163,7 +161,7 @@ Example (illustrative, schema differs by Tmap version):
 }
 ```
 
-#### Response
+#### 응답
 ```json
 {
   "route": {
@@ -175,16 +173,16 @@ Example (illustrative, schema differs by Tmap version):
 }
 ```
 
-### Common Rules
-- **Either** `arrivalTime` **or** `departureTime` must be provided (not both).
-- If `arrivalTime` is set, the service uses Tmap’s arrival‑by mode.
-- `preference` values are mapped to Tmap `transportType` (see above).
-- If no route is found, return `404` with `{"error":"NO_ROUTE"}`.
+### 공통 규칙
+- `arrivalTime` 또는 `departureTime` 중 **하나만** 필수
+- `arrivalTime`이 있으면 Tmap 도착 기준 모드 사용
+- `preference`는 Tmap `transportType`으로 매핑
+- 경로가 없으면 `404` + `{"error":"NO_ROUTE"}` 반환
 
 ---
 
-## 3) TODO / Validation Checklist
-- Confirm Tmap Transit endpoint path and parameter names.
-- Verify whether `searchType` is string or numeric.
-- Confirm time format (ISO‑8601 vs `yyyyMMddHHmm` string).
-- Validate transport preference options supported by Tmap.
+## 3) TODO / 검증 체크리스트
+- Tmap Transit 엔드포인트 경로와 파라미터명 재확인
+- `searchType`이 문자열인지 숫자인지 확인
+- 시간 포맷(ISO-8601 vs `yyyyMMddHHmm`) 확인
+- 교통수단 선호 옵션 지원 범위 확인

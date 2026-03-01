@@ -1,19 +1,20 @@
-## What/Why
+## 무엇을/왜 변경했나요?
 - 
 
-## Changes checklist
-- [ ] Self-reviewed the changes
-- [ ] Updated or added tests (if applicable)
-- [ ] Updated documentation (if applicable)
+## 변경 체크리스트
+- [ ] 변경 사항을 스스로 검토했습니다.
+- [ ] 테스트를 추가/수정했습니다. (해당 시)
+- [ ] 문서를 업데이트했습니다. (해당 시)
+- [ ] PR 설명과 리뷰 코멘트는 한국어로 작성했습니다.
 
-## Related Issues
+## 관련 이슈
 - Resolves #<id>
 
-## How to test
+## 테스트 방법
 1. 
 
-## Screenshots/GIF (optional)
+## 스크린샷/GIF (선택)
 - 
 
-## Notes / review focus
+## 리뷰 포인트 / 메모
 - 

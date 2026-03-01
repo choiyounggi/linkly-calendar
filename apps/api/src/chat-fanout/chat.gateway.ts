@@ -39,7 +39,7 @@ export class ChatGateway implements OnModuleInit, OnModuleDestroy {
         const parsed = JSON.parse(payload) as { messageId?: string };
         messageId = parsed.messageId ?? payload;
       } catch {
-        // noop - keep raw payload
+        // 무시: 원본 페이로드를 그대로 유지
       }
 
       this.server.to(`couple:${coupleId}`).emit('chat:message', {
