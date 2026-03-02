@@ -1,3 +1,5 @@
+import { existsSync } from 'fs';
+import path from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -6,11 +8,20 @@ import { ChatFanoutModule } from './chat-fanout/chat-fanout.module';
 import { TransitModule } from './transit/transit.module';
 import { ChatModule } from './chat/chat.module';
 
+const envCandidates = [
+  path.resolve(process.cwd(), '.env.local'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '../../.env.local'),
+  path.resolve(process.cwd(), '../../.env'),
+];
+
+const envFilePath = envCandidates.filter((candidate) => existsSync(candidate));
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: envFilePath.length ? envFilePath : envCandidates,
     }),
     ChatFanoutModule,
     TransitModule,
