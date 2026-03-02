@@ -9,6 +9,13 @@ export type EncryptedPayload = {
   keyVersion: number;
 };
 
+const CHECKED_ENV_FILES = [
+  '.env.local (레포 루트)',
+  '.env (레포 루트)',
+  'apps/api/.env.local',
+  'apps/api/.env',
+];
+
 @Injectable()
 export class ChatEncryptionService {
   private readonly logger = new Logger(ChatEncryptionService.name);
@@ -24,7 +31,7 @@ export class ChatEncryptionService {
     const legacyKey = this.getEnv('CHAT_ENCRYPTION_KEY')?.trim();
 
     this.logger.log(
-      `Chat encryption env loaded (CHAT_ENCRYPTION_KEYS present: ${Boolean(keysEnv)}).`,
+      `채팅 암호화 환경 로드 완료 (CHAT_ENCRYPTION_KEYS 존재 여부: ${Boolean(keysEnv)}).`,
     );
 
     if (keysEnv) {
@@ -43,13 +50,14 @@ export class ChatEncryptionService {
 
     if (!this.keys.size) {
       throw new Error(
-        'Chat encryption key is missing. Checked config/env vars: CHAT_ENCRYPTION_KEYS, CHAT_ENCRYPTION_KEY. Run `pnpm init:env` and set one of these variables.',
+        `채팅 암호화 키가 없습니다. 확인한 변수: CHAT_ENCRYPTION_KEYS, CHAT_ENCRYPTION_KEY / 확인한 파일: ${CHECKED_ENV_FILES.join(', ')}.\n` +
+          '해결 방법: 레포 루트에서 `pnpm init:env` 실행 후 다시 시작하세요.',
       );
     }
 
     if (!this.keys.has(this.activeVersion)) {
       throw new Error(
-        `Active chat encryption key version ${this.activeVersion} is missing in CHAT_ENCRYPTION_KEYS.`,
+        `활성 채팅 암호화 키 버전(${this.activeVersion})이 CHAT_ENCRYPTION_KEYS에 없습니다.`,
       );
     }
   }
@@ -98,11 +106,15 @@ export class ChatEncryptionService {
   private decodeKey(raw: string) {
     const trimmed = raw.trim();
     const isHex = /^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length === 64;
-    const buffer = Buffer.from(trimmed, isHex ? 'hex' : 'base64');
+    const normalized =
+      isHex || /[+/=]/.test(trimmed)
+        ? trimmed
+        : trimmed.replace(/-/g, '+').replace(/_/g, '/');
+    const buffer = Buffer.from(normalized, isHex ? 'hex' : 'base64');
 
     if (buffer.length !== 32) {
       throw new Error(
-        'Chat encryption key must be 32 bytes (base64 or 64-char hex).',
+        `채팅 암호화 키 형식이 올바르지 않습니다. 32바이트(base64/base64url 또는 64자리 hex)여야 합니다. 입력 길이: ${trimmed.length}`,
       );
     }
 
