@@ -8,11 +8,8 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-
-export enum ChatMessageKind {
-  TEXT = 'TEXT',
-  IMAGE = 'IMAGE',
-}
+import { ChatMessageKind } from '@linkly/shared';
+export { ChatMessageKind } from '@linkly/shared';
 
 export class ChatSendDto {
   @IsString()

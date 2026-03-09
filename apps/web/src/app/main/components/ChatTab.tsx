@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Plus, Send } from "lucide-react";
 import { io } from "socket.io-client";
+import { CHAT_NAMESPACE, CHAT_EVENTS } from "@linkly/shared";
 import styles from "./ChatTab.module.css";
 
 type ChatMessage = {
@@ -31,17 +32,6 @@ type ApiChatMessage = {
   text?: string | null;
   imageUrl?: string | null;
   sentAtMs?: number;
-};
-
-const CHAT_NAMESPACE = "/ws/chat";
-const CHAT_EVENTS = {
-  connected: "chat:connected",
-  error: "chat:error",
-  message: "chat:message",
-  join: "chat:join",
-  sync: "chat:sync",
-  ping: "chat:ping",
-  pong: "chat:pong",
 };
 
 const HEALTHCHECK_INTERVAL_MS = 15_000;

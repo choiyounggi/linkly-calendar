@@ -35,7 +35,11 @@ import { ChatSendDto } from './dto/chat-send.dto';
 @WebSocketGateway({
   namespace: CHAT_NAMESPACE,
   cors: {
-    origin: true,
+    origin: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      : process.env.NODE_ENV === 'development'
+        ? true
+        : [],
     credentials: true,
   },
 })
