@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import {
   AuthProvider,
   ChatMessageKind,
@@ -8,7 +9,74 @@ import {
 
 const prisma = new PrismaClient();
 
+function getEncryptionKey(): { key: Buffer; version: number } {
+  const keysEnv = process.env.CHAT_ENCRYPTION_KEYS?.trim();
+  const legacyKey = process.env.CHAT_ENCRYPTION_KEY?.trim();
+  const activeVersion = Number.parseInt(
+    process.env.CHAT_ENCRYPTION_KEY_VERSION ?? "1",
+    10,
+  );
+
+  if (keysEnv) {
+    for (const entry of keysEnv.split(",").map((v) => v.trim())) {
+      if (!entry) continue;
+      const [versionRaw, keyRaw] = entry.split(":");
+      if (!versionRaw || !keyRaw) continue;
+      const version = Number.parseInt(versionRaw, 10);
+      if (version !== activeVersion) continue;
+      const trimmed = keyRaw.trim();
+      const isHex = /^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length === 64;
+      const normalized =
+        isHex || /[+/=]/.test(trimmed)
+          ? trimmed
+          : trimmed.replace(/-/g, "+").replace(/_/g, "/");
+      return {
+        key: Buffer.from(normalized, isHex ? "hex" : "base64"),
+        version,
+      };
+    }
+  }
+
+  if (legacyKey) {
+    const trimmed = legacyKey.trim();
+    const isHex = /^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length === 64;
+    const normalized =
+      isHex || /[+/=]/.test(trimmed)
+        ? trimmed
+        : trimmed.replace(/-/g, "+").replace(/_/g, "/");
+    return {
+      key: Buffer.from(normalized, isHex ? "hex" : "base64"),
+      version: activeVersion,
+    };
+  }
+
+  throw new Error(
+    "CHAT_ENCRYPTION_KEYS 또는 CHAT_ENCRYPTION_KEY 환경변수가 필요합니다. `pnpm init:env`를 실행하세요.",
+  );
+}
+
+function encryptPayload(
+  plaintext: Record<string, unknown>,
+  encKey: Buffer,
+  keyVersion: number,
+) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", encKey, iv);
+  const data = Buffer.from(JSON.stringify(plaintext), "utf8");
+  const ciphertext = Buffer.concat([cipher.update(data), cipher.final()]);
+  const tag = cipher.getAuthTag();
+
+  return {
+    ciphertext: ciphertext.toString("base64"),
+    iv: iv.toString("base64"),
+    tag: tag.toString("base64"),
+    keyVersion,
+  };
+}
+
 async function main() {
+  const { key: encKey, version: keyVersion } = getEncryptionKey();
+
   const [user1, user2] = await Promise.all([
     prisma.user.upsert({
       where: {
@@ -119,38 +187,59 @@ async function main() {
 
   if (existingMessages === 0) {
     const base = BigInt(Date.now() - 12_000);
+    const seedMessages = [
+      {
+        text: "안녕! 오늘 일정 공유할까?",
+        imageUrl: null,
+        senderUserId: user1.id,
+        kind: ChatMessageKind.TEXT,
+        offset: 0n,
+      },
+      {
+        text: "좋아! 저녁 7시에 만나자 💛",
+        imageUrl: null,
+        senderUserId: user2.id,
+        kind: ChatMessageKind.TEXT,
+        offset: 1_000n,
+      },
+      {
+        text: null,
+        imageUrl: "https://picsum.photos/seed/linkly-chat-1/800/600",
+        senderUserId: user1.id,
+        kind: ChatMessageKind.IMAGE,
+        offset: 2_000n,
+      },
+      {
+        text: "사진 너무 예쁘다!",
+        imageUrl: null,
+        senderUserId: user2.id,
+        kind: ChatMessageKind.TEXT,
+        offset: 3_000n,
+      },
+    ];
+
     await prisma.chatMessage.createMany({
-      data: [
-        {
+      data: seedMessages.map((msg) => {
+        const encrypted = encryptPayload(
+          { text: msg.text, imageUrl: msg.imageUrl },
+          encKey,
+          keyVersion,
+        );
+        return {
           coupleId,
-          senderUserId: user1.id,
-          kind: ChatMessageKind.TEXT,
-          text: "안녕! 오늘 일정 공유할까?",
-          sentAtMs: base,
-        },
-        {
-          coupleId,
-          senderUserId: user2.id,
-          kind: ChatMessageKind.TEXT,
-          text: "좋아! 저녁 7시에 만나자 💛",
-          sentAtMs: base + 1_000n,
-        },
-        {
-          coupleId,
-          senderUserId: user1.id,
-          kind: ChatMessageKind.IMAGE,
-          imageUrl: "https://picsum.photos/seed/linkly-chat-1/800/600",
-          thumbnailUrl: "https://picsum.photos/seed/linkly-chat-1/240/180",
-          sentAtMs: base + 2_000n,
-        },
-        {
-          coupleId,
-          senderUserId: user2.id,
-          kind: ChatMessageKind.TEXT,
-          text: "사진 너무 예쁘다!",
-          sentAtMs: base + 3_000n,
-        },
-      ],
+          senderUserId: msg.senderUserId,
+          kind: msg.kind,
+          ciphertext: encrypted.ciphertext,
+          iv: encrypted.iv,
+          tag: encrypted.tag,
+          keyVersion: encrypted.keyVersion,
+          thumbnailUrl:
+            msg.kind === ChatMessageKind.IMAGE
+              ? "https://picsum.photos/seed/linkly-chat-1/240/180"
+              : null,
+          sentAtMs: base + msg.offset,
+        };
+      }),
     });
   }
 

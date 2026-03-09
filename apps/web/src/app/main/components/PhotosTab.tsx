@@ -98,6 +98,7 @@ const photosReducer = (state: PhotosState, action: PhotosAction): PhotosState =>
       return {
         ...state,
         images: nextImages,
+        selectMode: false,
         selectedIds: new Set<number>(),
       };
     }

@@ -1,10 +1,11 @@
 import { existsSync } from 'fs';
 import path from 'path';
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ChatFanoutModule } from './chat-fanout/chat-fanout.module';
 import { TransitModule } from './transit/transit.module';
 import { ChatModule } from './chat/chat.module';
 
@@ -23,11 +24,19 @@ const envFilePath = envCandidates.filter((candidate) => existsSync(candidate));
       isGlobal: true,
       envFilePath: envFilePath.length ? envFilePath : envCandidates,
     }),
-    ChatFanoutModule,
+    ThrottlerModule.forRoot({
+      throttlers: [
+        { name: 'short', ttl: 1000, limit: 10 },
+        { name: 'medium', ttl: 60_000, limit: 100 },
+      ],
+    }),
     TransitModule,
     ChatModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

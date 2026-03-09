@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
@@ -14,13 +15,15 @@ import {
 import type Redis from 'ioredis';
 import type { Socket } from 'socket.io';
 import { Server } from 'socket.io';
+import { CHAT_NAMESPACE, roomForCouple } from '../chat/chat.constants';
 
-@WebSocketGateway()
+@WebSocketGateway({ namespace: CHAT_NAMESPACE })
 @Injectable()
 export class ChatGateway implements OnModuleInit, OnModuleDestroy {
   @WebSocketServer()
   private readonly server!: Server;
 
+  private readonly logger = new Logger(ChatGateway.name);
   private subscriber: Redis;
 
   constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {
@@ -31,7 +34,7 @@ export class ChatGateway implements OnModuleInit, OnModuleDestroy {
     await this.subscriber.connect();
     await this.subscriber.psubscribe('chat:couple:*');
 
-    this.subscriber.on('pmessage', (_, channel, payload) => {
+    this.subscriber.on('pmessage', (_: string, channel: string, payload: string) => {
       const coupleId = channel.split(':')[2];
       let messageId = payload;
 
@@ -42,7 +45,7 @@ export class ChatGateway implements OnModuleInit, OnModuleDestroy {
         // 무시: 원본 페이로드를 그대로 유지
       }
 
-      this.server.to(`couple:${coupleId}`).emit('chat:message', {
+      this.server.to(roomForCouple(coupleId)).emit('chat:message', {
         messageId,
       });
     });
@@ -53,7 +56,18 @@ export class ChatGateway implements OnModuleInit, OnModuleDestroy {
     @MessageBody() data: { coupleId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const room = `couple:${data.coupleId}`;
+    const handshakeCoupleId =
+      (client.handshake.auth as Record<string, unknown>)?.coupleId ??
+      client.handshake.query?.coupleId;
+
+    if (!handshakeCoupleId || handshakeCoupleId !== data.coupleId) {
+      this.logger.warn(
+        `Client ${client.id} tried to join room for couple ${data.coupleId} but handshake coupleId does not match.`,
+      );
+      return;
+    }
+
+    const room = roomForCouple(data.coupleId);
     void client.join(room);
   }
 

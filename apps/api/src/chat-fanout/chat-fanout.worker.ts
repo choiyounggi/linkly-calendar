@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { CHAT_FANOUT_QUEUE, type ChatFanoutJob } from './chat-fanout.queue';
 
 @Injectable()
 export class ChatFanoutWorker implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(ChatFanoutWorker.name);
   private worker?: Worker<ChatFanoutJob>;
 
   constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
@@ -27,6 +29,17 @@ export class ChatFanoutWorker implements OnModuleInit, OnModuleDestroy {
       },
       { connection: redisConfig() },
     );
+
+    this.worker.on('failed', (job: { id?: string } | undefined, error: Error) => {
+      this.logger.error(
+        `Fanout job ${job?.id ?? 'unknown'} failed: ${error.message}`,
+        error.stack,
+      );
+    });
+
+    this.worker.on('error', (error: Error) => {
+      this.logger.error(`Fanout worker error: ${error.message}`, error.stack);
+    });
   }
 
   async onModuleDestroy() {

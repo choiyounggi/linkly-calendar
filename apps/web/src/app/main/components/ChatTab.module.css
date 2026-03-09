@@ -173,3 +173,10 @@
   width: 18px;
   height: 18px;
 }
+
+.sendFailed {
+  display: block;
+  font-size: 11px;
+  color: #e74c3c;
+  margin-top: 4px;
+}

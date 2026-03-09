@@ -1,15 +1,15 @@
+import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Min,
   MinLength,
 } from 'class-validator';
-
-export enum ChatMessageKind {
-  TEXT = 'TEXT',
-  IMAGE = 'IMAGE',
-}
+import { ChatMessageKind } from '@linkly/shared';
+export { ChatMessageKind } from '@linkly/shared';
 
 export class ChatSendDto {
   @IsString()
@@ -38,5 +38,8 @@ export class ChatSendDto {
   clientMessageId?: string;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   sentAtMs?: number;
 }

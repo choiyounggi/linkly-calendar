@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -11,7 +10,7 @@ import {
 import { ChatService } from './chat.service';
 import { ChatFetchQueryDto } from './dto/chat-fetch.dto';
 import { ChatIdentityQueryDto } from './dto/chat-identity.dto';
-import { ChatMessageKind, ChatSendDto } from './dto/chat-send.dto';
+import { ChatSendDto } from './dto/chat-send.dto';
 
 @UsePipes(
   new ValidationPipe({
@@ -26,7 +25,6 @@ export class ChatController {
 
   @Post('messages')
   async sendMessage(@Body() payload: ChatSendDto) {
-    this.ensurePayloadMatchesKind(payload);
     const message = await this.chatService.createMessage(payload);
     return { ok: true, message };
   }
@@ -41,15 +39,5 @@ export class ChatController {
   async fetchIdentity(@Query() query: ChatIdentityQueryDto) {
     const identity = await this.chatService.fetchIdentity(query.providerUserId);
     return { ok: true, identity };
-  }
-
-  private ensurePayloadMatchesKind(payload: ChatSendDto) {
-    if (payload.kind === ChatMessageKind.TEXT && !payload.text) {
-      throw new BadRequestException('Text message requires text.');
-    }
-
-    if (payload.kind === ChatMessageKind.IMAGE && !payload.imageUrl) {
-      throw new BadRequestException('Image message requires imageUrl.');
-    }
   }
 }

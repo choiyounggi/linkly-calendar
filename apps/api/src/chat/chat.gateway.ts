@@ -23,7 +23,7 @@ type ChatSocket = Socket<
   ChatSocketData
 >;
 import { CHAT_EVENTS, CHAT_NAMESPACE, roomForCouple } from './chat.constants';
-import { ChatMessageKind, ChatSendDto } from './dto/chat-send.dto';
+import { ChatSendDto } from './dto/chat-send.dto';
 
 @UsePipes(
   new ValidationPipe({
@@ -35,7 +35,11 @@ import { ChatMessageKind, ChatSendDto } from './dto/chat-send.dto';
 @WebSocketGateway({
   namespace: CHAT_NAMESPACE,
   cors: {
-    origin: true,
+    origin: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      : process.env.NODE_ENV === 'development'
+        ? true
+        : [],
     credentials: true,
   },
 })
@@ -123,14 +127,6 @@ export class ChatGateway {
     this.ensurePayloadMatchesClient(payload, client);
     this.touchHeartbeat(client);
 
-    if (payload.kind === ChatMessageKind.TEXT && !payload.text) {
-      throw new WsException('Text message requires text.');
-    }
-
-    if (payload.kind === ChatMessageKind.IMAGE && !payload.imageUrl) {
-      throw new WsException('Image message requires imageUrl.');
-    }
-
     const message = await this.chatService.createMessage(payload);
 
     this.server
@@ -169,7 +165,7 @@ export class ChatGateway {
   }
 
   private registerDisconnectHandlers(client: ChatSocket) {
-    client.on('disconnecting', (reason) => {
+    client.on('disconnecting', (reason: string) => {
       this.disconnectReasons.set(client.id, reason ?? 'unknown');
     });
   }
