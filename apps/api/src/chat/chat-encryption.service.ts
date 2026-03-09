@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import crypto from 'crypto';
 
@@ -79,20 +79,28 @@ export class ChatEncryptionService {
   }
 
   decrypt(payload: EncryptedPayload): Record<string, unknown> {
-    const key = this.getKey(payload.keyVersion);
-    const iv = Buffer.from(payload.iv, 'base64');
-    const tag = Buffer.from(payload.tag, 'base64');
-    const ciphertext = Buffer.from(payload.ciphertext, 'base64');
+    try {
+      const key = this.getKey(payload.keyVersion);
+      const iv = Buffer.from(payload.iv, 'base64');
+      const tag = Buffer.from(payload.tag, 'base64');
+      const ciphertext = Buffer.from(payload.ciphertext, 'base64');
 
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(tag);
 
-    const plaintext = Buffer.concat([
-      decipher.update(ciphertext),
-      decipher.final(),
-    ]);
+      const plaintext = Buffer.concat([
+        decipher.update(ciphertext),
+        decipher.final(),
+      ]);
 
-    return JSON.parse(plaintext.toString('utf8')) as Record<string, unknown>;
+      return JSON.parse(plaintext.toString('utf8')) as Record<string, unknown>;
+    } catch (error) {
+      this.logger.error(
+        `채팅 메시지 복호화 실패 (keyVersion=${payload.keyVersion})`,
+        error instanceof Error ? error.stack : error,
+      );
+      throw new InternalServerErrorException('메시지 복호화에 실패했습니다.');
+    }
   }
 
   private getKey(version: number) {

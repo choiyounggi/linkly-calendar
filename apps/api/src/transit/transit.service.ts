@@ -4,7 +4,6 @@ import {
   Inject,
   Injectable,
   Logger,
-  OnModuleDestroy,
 } from '@nestjs/common';
 import type Redis from 'ioredis';
 import crypto from 'node:crypto';
@@ -21,7 +20,7 @@ const DEFAULT_HTTP_TIMEOUT_MS = 12_000;
 const KST_OFFSET_MINUTES = 9 * 60;
 
 @Injectable()
-export class TransitService implements OnModuleDestroy {
+export class TransitService {
   private readonly logger = new Logger(TransitService.name);
   private readonly appKey = process.env.TMAP_APP_KEY ?? '';
   private readonly bucketMinutes = Number.parseInt(
@@ -44,14 +43,6 @@ export class TransitService implements OnModuleDestroy {
   constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {
     if (!this.appKey) {
       this.logger.warn('TMAP_APP_KEY is missing. Transit requests will fail.');
-    }
-  }
-
-  async onModuleDestroy() {
-    try {
-      await this.redis.quit();
-    } catch (error) {
-      this.logger.warn('Failed to close Redis connection', error as Error);
     }
   }
 

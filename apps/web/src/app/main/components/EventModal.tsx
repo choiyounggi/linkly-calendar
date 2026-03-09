@@ -86,11 +86,35 @@ function EventModalContent({
   const descriptionId = useId();
   const titleInputRef = useRef<HTMLInputElement | null>(null);
 
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     titleInputRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
+        return;
+      }
+
+      if (event.key === "Tab" && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'input, textarea, button, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey) {
+          if (document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -149,7 +173,7 @@ function EventModalContent({
       aria-describedby={descriptionId}
       onClick={handleOverlayClick}
     >
-      <div className={styles.modal} onClick={(event) => event.stopPropagation()}>
+      <div className={styles.modal} ref={modalRef} onClick={(event) => event.stopPropagation()}>
         <header className={styles.header}>
           <h3 className={styles.title} id={titleId}>
             선택한 날짜

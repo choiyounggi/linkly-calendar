@@ -20,6 +20,7 @@ type ChatMessage = {
   kind: "text" | "image";
   text?: string;
   imageSrc?: string;
+  sendFailed?: boolean;
 };
 
 type ApiChatMessage = {
@@ -575,9 +576,19 @@ export default function ChatTab() {
 
         if (!response.ok) {
           console.warn("Failed to send chat message", response.statusText);
+          setAllMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === clientMessageId ? { ...msg, sendFailed: true } : msg,
+            ),
+          );
         }
       } catch (error) {
         console.warn("Failed to send chat message", error);
+        setAllMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === clientMessageId ? { ...msg, sendFailed: true } : msg,
+          ),
+        );
       }
     },
     [appendMessage, chatApiUrl, coupleId, userId]
@@ -590,6 +601,16 @@ export default function ChatTab() {
     void sendChatMessage({ text: trimmed, kind: "TEXT" });
     setMessage("");
   }, [message, sendChatMessage]);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
 
   const handleQuickMessage = useCallback(() => {
     void sendChatMessage({ text: "사진은 곧 공유할게!" });
@@ -648,6 +669,9 @@ export default function ChatTab() {
                   alt="공유된 이미지"
                 />
               )}
+              {item.sendFailed && (
+                <span className={styles.sendFailed}>전송 실패</span>
+              )}
             </div>
           </div>
         ))}
@@ -667,6 +691,7 @@ export default function ChatTab() {
           placeholder="메시지를 입력하세요"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <button
           type="button"

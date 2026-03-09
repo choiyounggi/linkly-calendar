@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Calendar, Image as ImageIcon, MessageCircle, Settings } from "lucide-react";
 import CalendarTab from "./components/CalendarTab";
 import ChatTab from "./components/ChatTab";
@@ -23,19 +23,21 @@ function SettingsView() {
   );
 }
 
-const views: Record<string, ReactNode> = {
-  calendar: <CalendarTab />,
-  chat: <ChatTab />,
-  photos: <PhotosTab />,
-  settings: <SettingsView />,
-};
-
 export default function MainPage() {
   const [activeTab, setActiveTab] = useState("calendar");
 
   return (
     <div className={styles.container}>
-      <main className={styles.content}>{views[activeTab]}</main>
+      <main className={styles.content}>
+        <div style={{ display: activeTab === "calendar" ? "contents" : "none" }}>
+          <CalendarTab />
+        </div>
+        <div style={{ display: activeTab === "chat" ? "contents" : "none" }}>
+          <ChatTab />
+        </div>
+        {activeTab === "photos" && <PhotosTab />}
+        {activeTab === "settings" && <SettingsView />}
+      </main>
       <footer className={styles.footer}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
