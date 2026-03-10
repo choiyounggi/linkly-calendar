@@ -1,0 +1,298 @@
+.container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1c1c1c;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #fafafa;
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tabBtn:not(:last-child) {
+  border-right: 1px solid #f0f0f0;
+}
+
+.tabBtnActive {
+  background: #ffd400;
+  color: #1c1c1c;
+}
+
+/* Received invites */
+.inviteList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inviteCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid #f0f0f0;
+  border-radius: 14px;
+  background: #fafafa;
+}
+
+.inviteInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.inviteName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1c;
+}
+
+.inviteEmail {
+  font-size: 12px;
+  color: #888;
+}
+
+.inviteActions {
+  display: flex;
+  gap: 8px;
+}
+
+.acceptBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: #ffd400;
+  color: #1c1c1c;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.acceptBtn:hover {
+  transform: translateY(-1px);
+}
+
+.declineBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: #f2f2f2;
+  color: #4a4a4a;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.declineBtn:hover {
+  transform: translateY(-1px);
+}
+
+.acceptBtn:disabled,
+.declineBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.emptyText {
+  padding: 24px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+/* Send invite form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.emailInput {
+  flex: 1;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  background: #fafafa;
+  color: #1c1c1c;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.emailInput:focus {
+  outline: none;
+  border-color: #ffd400;
+  box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.2);
+}
+
+.sendBtn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #ffd400;
+  color: #1c1c1c;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s;
+}
+
+.sendBtn:hover {
+  transform: translateY(-1px);
+}
+
+.sendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Sent status */
+.sentStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #fff3b0;
+  border-radius: 14px;
+  background: #fffde6;
+}
+
+.sentLabel {
+  font-size: 13px;
+  color: #888;
+}
+
+.sentTarget {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1c;
+}
+
+.cancelBtn {
+  align-self: flex-end;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: #f2f2f2;
+  color: #4a4a4a;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  background: #eee;
+}
+
+/* Error modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.modal {
+  width: min(360px, 100%);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1c1c1c;
+  margin: 0;
+}
+
+.modalDesc {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.modalBtn {
+  padding: 12px;
+  border: none;
+  border-radius: 999px;
+  background: #ffd400;
+  color: #1c1c1c;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ff5b5b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-left: 6px;
+}

@@ -21,6 +21,36 @@ export class UserService {
     return user;
   }
 
+  /** 사용자 상태: 커플 여부 + 집주소 등록 여부 */
+  async getStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, homeAddress: true, homeLat: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const membership = await this.prisma.coupleMember.findUnique({
+      where: { userId },
+      select: { coupleId: true },
+    });
+
+    return {
+      userId: user.id,
+      hasCouple: Boolean(membership),
+      coupleId: membership?.coupleId ?? null,
+      hasHomeAddress: Boolean(user.homeAddress && user.homeLat),
+    };
+  }
+
+  /** 이메일로 사용자 검색 (초대용) */
+  async findByEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, displayName: true, avatarUrl: true },
+    });
+    return user;
+  }
+
   async updateMe(userId: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!user) throw new NotFoundException('User not found');
