@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { TransitModule } from './transit/transit.module';
 import { ChatModule } from './chat/chat.module';
 import { EventModule } from './event/event.module';
+import { CoupleModule } from './couple/couple.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { UserModule } from './user/user.module';
 
@@ -36,6 +37,7 @@ const envFilePath = envCandidates.filter((candidate) => existsSync(candidate));
     TransitModule,
     ChatModule,
     EventModule,
+    CoupleModule,
     GalleryModule,
     UserModule,
   ],

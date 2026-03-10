@@ -15,7 +15,7 @@ export class UserService {
   async findMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, displayName: true, avatarUrl: true, homeLat: true, homeLng: true, homeAddress: true, homeUpdatedAt: true },
+      select: { id: true, email: true, displayName: true, avatarUrl: true, birthday: true, homeLat: true, homeLng: true, homeAddress: true, homeUpdatedAt: true },
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -30,12 +30,14 @@ export class UserService {
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
+        ...(dto.displayName !== undefined && { displayName: dto.displayName }),
+        ...(dto.birthday !== undefined && { birthday: dto.birthday ? new Date(dto.birthday) : null }),
         ...(dto.homeLat !== undefined && { homeLat: dto.homeLat }),
         ...(dto.homeLng !== undefined && { homeLng: dto.homeLng }),
         ...(dto.homeAddress !== undefined && { homeAddress: dto.homeAddress }),
         ...(homeChanged && { homeUpdatedAt: new Date() }),
       },
-      select: { id: true, email: true, displayName: true, avatarUrl: true, homeLat: true, homeLng: true, homeAddress: true, homeUpdatedAt: true },
+      select: { id: true, email: true, displayName: true, avatarUrl: true, birthday: true, homeLat: true, homeLng: true, homeAddress: true, homeUpdatedAt: true },
     });
 
     if (homeChanged) {

@@ -42,6 +42,7 @@ model User {
   email          String?      @unique
   displayName    String
   avatarUrl      String?
+  birthday       DateTime?
   authProvider   AuthProvider
   providerUserId String
   homeLat        Float?
@@ -63,10 +64,11 @@ model User {
 }
 
 model Couple {
-  id        String       @id @default(cuid())
-  status    CoupleStatus @default(PENDING)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  status          CoupleStatus @default(PENDING)
+  anniversaryDate DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   members       CoupleMember[]
   invites       CoupleInvite[]
@@ -79,6 +81,7 @@ model CoupleMember {
   id       String           @id @default(cuid())
   coupleId String
   userId   String
+  nickname String?
   role     CoupleMemberRole @default(MEMBER)
   joinedAt DateTime         @default(now())
 

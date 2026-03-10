@@ -5,6 +5,7 @@ import { Calendar, Image as ImageIcon, MessageCircle, Settings } from "lucide-re
 import CalendarTab from "./components/CalendarTab";
 import ChatTab from "./components/ChatTab";
 import PhotosTab from "./components/PhotosTab";
+import SettingsTab from "./components/SettingsTab";
 import styles from "./page.module.css";
 
 const tabs = [
@@ -13,15 +14,6 @@ const tabs = [
   { key: "photos", label: "Photos", icon: ImageIcon },
   { key: "settings", label: "Settings", icon: Settings },
 ];
-
-function SettingsView() {
-  return (
-    <div className={styles.viewContent}>
-      <Settings className={styles.viewIcon} />
-      <h2>Settings</h2>
-    </div>
-  );
-}
 
 export default function MainPage() {
   const [activeTab, setActiveTab] = useState("calendar");
@@ -36,7 +28,7 @@ export default function MainPage() {
           <ChatTab />
         </div>
         {activeTab === "photos" && <PhotosTab />}
-        {activeTab === "settings" && <SettingsView />}
+        {activeTab === "settings" && <SettingsTab />}
       </main>
       <footer className={styles.footer}>
         {tabs.map((tab) => {

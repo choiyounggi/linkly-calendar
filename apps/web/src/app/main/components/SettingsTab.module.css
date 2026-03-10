@@ -1,8 +1,254 @@
-.container { padding: 16px; }
-.loading { padding: 24px; text-align: center; color: #888; }
-.heading { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
-.section { margin-bottom: 16px; }
-.label { font-size: 13px; color: #666; display: block; margin-bottom: 4px; }
-.value { font-size: 15px; margin: 0; }
-.currentHome { font-size: 14px; color: #333; margin: 0 0 8px; }
-.saving { font-size: 13px; color: #1976d2; margin-top: 4px; }
+.container {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.loading {
+  padding: 48px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+/* Card sections */
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1c1c1c;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Field rows */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+}
+
+.fieldValue {
+  font-size: 15px;
+  color: #1c1c1c;
+  margin: 0;
+}
+
+.fieldValueMuted {
+  font-size: 14px;
+  color: #aaa;
+  font-style: italic;
+  margin: 0;
+}
+
+.fieldInput {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #fafafa;
+  color: #1c1c1c;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: #ffd400;
+  box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.2);
+}
+
+.fieldInput:read-only {
+  background: #f5f5f5;
+  color: #888;
+  cursor: default;
+}
+
+/* Inline edit row */
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editRow .fieldInput {
+  flex: 1;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffd400;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.editBtn:hover {
+  background: #fff9d6;
+}
+
+.editBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Member pair */
+.memberPair {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.memberBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.memberTag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f4b700;
+}
+
+/* Break up */
+.dangerZone {
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.breakUpBtn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #ff5b5b;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+}
+
+.breakUpBtn:hover {
+  transform: translateY(-1px);
+}
+
+/* Confirm Modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.confirmModal {
+  width: min(380px, 100%);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.confirmTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1c1c;
+  margin: 0;
+}
+
+.confirmDesc {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.confirmCancel {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 999px;
+  background: #f2f2f2;
+  color: #4a4a4a;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.confirmCancel:hover {
+  transform: translateY(-1px);
+}
+
+.confirmDanger {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 999px;
+  background: #ff5b5b;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.confirmDanger:hover {
+  transform: translateY(-1px);
+}
+
+.confirmDanger:disabled,
+.confirmCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Save indicator */
+.saveIndicator {
+  font-size: 12px;
+  color: #f4b700;
+  font-weight: 600;
+}
