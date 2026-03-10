@@ -16,6 +16,7 @@
 | **채팅** | AES-256-GCM 암호화 실시간 메시징 (WebSocket + BullMQ) | 구현 완료 |
 | **갤러리** | SHA-256 해시 파일 저장, 업로드/삭제, 무한 스크롤, 라이트박스 | 구현 완료 |
 | **설정** | 커플 정보 (이름·생일·만난날·집주소), 내 정보, 커플 끊기 | 구현 완료 |
+| **커플 등록** | 이메일 기반 커플 신청/수락/거절, 자동 중복 방지, 상태 분기 | 구현 완료 |
 | **AI** | 스마트 추천 및 인사이트 | 예정 |
 
 ## 디자인 방향
@@ -33,11 +34,11 @@ linkly-calendar/                 # Turborepo 모노레포
 │   │   └── src/
 │   │       ├── chat/            # 채팅 (암호화, WebSocket, BullMQ 팬아웃)
 │   │       ├── chat-fanout/     # BullMQ 워커 + Redis Pub/Sub 브리지
-│   │       ├── couple/          # 커플 정보 조회/수정, 커플 끊기
+│   │       ├── couple/          # 커플 정보/초대(신청·수락·거절·취소)
 │   │       ├── event/           # 이벤트 CRUD + 경로 캐시 무효화
 │   │       ├── gallery/         # 사진 업로드/조회/삭제 (SHA-256 해시 파일명)
 │   │       ├── transit/         # Tmap 대중교통, POI 검색, 커플 경로 분석
-│   │       ├── user/            # 사용자 프로필 (이름, 생일, 집 위치)
+│   │       ├── user/            # 사용자 프로필, 상태 확인, 이메일 검색
 │   │       ├── prisma/          # Prisma 서비스
 │   │       └── redis/           # Redis 연결 모듈
 │   └── web/                     # Next.js 프론트엔드 (포트 3000)
@@ -47,6 +48,7 @@ linkly-calendar/                 # Turborepo 모노레포
 │           │   ├── ChatTab         # 실시간 채팅 UI
 │           │   ├── PhotosTab       # 갤러리 그리드 + 라이트박스 + 선택 삭제
 │           │   ├── SettingsTab     # 커플 정보 + 내 정보 + 커플 끊기
+│           │   ├── CoupleSetup    # 커플 등록 (받은 요청/신청하기 탭)
 │           │   ├── EventModal      # 이벤트 생성/수정 모달 + POI 검색
 │           │   ├── PoiSearchInput  # 장소 자동완성 드롭다운
 │           │   ├── RouteSummary    # 경로 요약 (만남역, 출발 시간)
@@ -55,6 +57,7 @@ linkly-calendar/                 # Turborepo 모노레포
 │               ├── useEvents       # 이벤트 CRUD + 낙관적 업데이트
 │               ├── usePhotos       # 사진 업로드/조회/삭제 + 커서 페이지네이션
 │               ├── useCouple       # 커플 정보 조회/수정/끊기
+│               ├── useCoupleInvite # 초대 발송/수락/거절/취소 + 상태 확인
 │               ├── useUserProfile  # 내 정보 조회/수정
 │               ├── useCoupleRoute  # 커플 경로 분석 + 캐시 갱신
 │               └── usePoiSearch    # 디바운스 POI 검색 + 요청 취소
@@ -151,6 +154,23 @@ pnpm lint
 | `PATCH` | `/v1/couples/:id?userId=` | 커플 정보 수정 (만난 날짜, 나/상대 닉네임) |
 | `DELETE` | `/v1/couples/:id?userId=` | 커플 끊기 (cascade 전체 삭제) |
 
+### 커플 초대
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| `POST` | `/v1/couples/invites` | 이메일로 커플 신청 (기존 PENDING 자동 취소, 1개만 유지) |
+| `GET` | `/v1/couples/invites/sent?userId=` | 내가 보낸 대기중 초대 |
+| `GET` | `/v1/couples/invites/received?userId=` | 받은 초대 목록 |
+| `POST` | `/v1/couples/invites/:id/accept?userId=` | 초대 수락 → Couple 활성화 + 멤버 등록 |
+| `POST` | `/v1/couples/invites/:id/decline?userId=` | 초대 거절 |
+| `DELETE` | `/v1/couples/invites/sent?userId=` | 보낸 초대 취소 |
+
+**초대 규칙:**
+- 한 사람이 동시에 보낼 수 있는 PENDING 초대는 **1개만** 유지
+- A에게 신청 후 B에게 신청하면 A 초대는 자동 `CANCELED`
+- 같은 상대에게 재신청해도 기존 것 취소 후 새로 생성 (중복 row 없음)
+- 수락 시 양쪽의 다른 PENDING 초대 전부 자동 취소
+
 ### 갤러리 (사진)
 
 | 메서드 | 경로 | 설명 |
@@ -205,11 +225,13 @@ Tmap POI 검색 API를 통한 장소 자동완성
 
 **`POST /v1/transit/departures:compute`** — `arrivalBy` + `arrivalTime`/`departureTime` 지원
 
-### 사용자 프로필
+### 사용자
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | `GET` | `/v1/users/me?userId=` | 내 프로필 조회 (이름, 생일, 집 위치 등) |
+| `GET` | `/v1/users/me/status?userId=` | 상태 확인 (커플 여부, coupleId, 집주소 등록 여부) |
+| `GET` | `/v1/users/search?email=` | 이메일로 사용자 검색 (초대 전 존재 확인) |
 | `PATCH` | `/v1/users/me?userId=` | 프로필 수정 (이름, 생일, 집 위치, 경로 캐시 무효화) |
 
 ### 채팅
@@ -264,7 +286,7 @@ Tmap POI 검색 API를 통한 장소 자동완성
 | `User` | 소셜/로컬 인증, 생일, 집 위치 (`homeLat`, `homeLng`, `homeAddress`) |
 | `Couple` | 커플 상태, 만난 날짜 (`anniversaryDate`) |
 | `CoupleMember` | 커플 멤버십, 별칭 (`nickname`), 역할 (사용자당 1개 커플 제약) |
-| `CoupleInvite` | 초대/수락/거절/만료 흐름 |
+| `CoupleInvite` | 초대 흐름 (PENDING→ACCEPTED/DECLINED/CANCELED, 7일 만료) |
 | `CalendarEvent` | 커플 공유 이벤트 (장소 좌표, 약속 시간 포함) |
 | `RouteCache` | 경로 분석 결과 DB 캐시 (24시간 TTL) |
 | `GalleryPhoto` | 공유 갤러리 사진 (DB 테이블명: `Photo`) |
