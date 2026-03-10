@@ -29,11 +29,20 @@ export class ChatFanoutGateway implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
+    this.subscriber.on('error', (err: Error) => {
+      this.logger.error(`Redis subscriber error: ${err.message}`, err.stack);
+    });
+
     await this.subscriber.connect();
     await this.subscriber.psubscribe(`${CHANNEL_PREFIX}*`);
 
     this.subscriber.on('pmessage', (_: string, channel: string, payload: string) => {
       const coupleId = channel.slice(CHANNEL_PREFIX.length);
+
+      if (!this.server) {
+        this.logger.warn(`Server not ready, dropping fanout for couple ${coupleId}`);
+        return;
+      }
 
       try {
         const message = JSON.parse(payload) as Record<string, unknown>;

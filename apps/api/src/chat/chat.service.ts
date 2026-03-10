@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { AuthProvider, type ChatMessage } from '@prisma/client';
 import { ChatFanoutQueue } from '../chat-fanout/chat-fanout.queue';
@@ -23,6 +24,8 @@ export type ChatMessageView = {
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: ChatEncryptionService,
@@ -54,10 +57,17 @@ export class ChatService {
 
     const view = this.toView(record, payload.text ?? null, payload.imageUrl ?? null);
 
-    await this.fanoutQueue.queue.add('fanout', {
-      coupleId: payload.coupleId,
-      message: { ...view, clientMessageId: payload.clientMessageId },
-    });
+    try {
+      await this.fanoutQueue.queue.add('fanout', {
+        coupleId: payload.coupleId,
+        message: { ...view, clientMessageId: payload.clientMessageId },
+      }, { attempts: 3, backoff: { type: 'exponential', delay: 1000 } });
+    } catch (error) {
+      this.logger.error(
+        `Failed to enqueue fanout for message ${view.id}`,
+        error instanceof Error ? error.stack : error,
+      );
+    }
 
     return view;
   }
@@ -67,7 +77,7 @@ export class ChatService {
 
     const sentAtMsFilter: Record<string, bigint> = {};
     if (query.beforeMs) sentAtMsFilter.lt = BigInt(query.beforeMs);
-    if (query.afterMs) sentAtMsFilter.gt = BigInt(query.afterMs);
+    if (query.afterMs) sentAtMsFilter.gte = BigInt(query.afterMs);
 
     const messages = await this.prisma.chatMessage.findMany({
       where: {

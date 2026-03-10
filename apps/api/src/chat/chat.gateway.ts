@@ -206,6 +206,7 @@ export class ChatGateway {
         this.logger.warn(
           `Client ${client.id} heartbeat timeout after ${timeoutMs}ms; disconnecting.`,
         );
+        this.stopHeartbeat(client.id);
         client.disconnect(true);
         return;
       }

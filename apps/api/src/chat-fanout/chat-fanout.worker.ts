@@ -27,7 +27,10 @@ export class ChatFanoutWorker implements OnModuleInit, OnModuleDestroy {
           JSON.stringify(message),
         );
       },
-      { connection: redisConfig() },
+      {
+        connection: redisConfig(),
+        stalledInterval: 30_000,
+      },
     );
 
     this.worker.on('failed', (job: { id?: string } | undefined, error: Error) => {
@@ -35,6 +38,10 @@ export class ChatFanoutWorker implements OnModuleInit, OnModuleDestroy {
         `Fanout job ${job?.id ?? 'unknown'} failed: ${error.message}`,
         error.stack,
       );
+    });
+
+    this.worker.on('stalled', (jobId: string) => {
+      this.logger.warn(`Fanout job ${jobId} stalled — will be retried.`);
     });
 
     this.worker.on('error', (error: Error) => {

@@ -140,7 +140,7 @@ export default function ChatTab() {
     [sortedMessages, startIndex]
   );
 
-  const appendMessage = useCallback((nextMessage: ChatMessage) => {
+  const appendMessage = useCallback((nextMessage: ChatMessage, isOptimistic = false) => {
     setAllMessages((prev) => {
       if (seenMessageIdsRef.current.has(nextMessage.id)) {
         return prev;
@@ -149,8 +149,9 @@ export default function ChatTab() {
       seenMessageIdsRef.current.add(nextMessage.id);
       lastActivityRef.current = Date.now();
       if (
-        !lastSeenMessageRef.current ||
-        nextMessage.sentAtMs >= lastSeenMessageRef.current.sentAtMs
+        !isOptimistic &&
+        (!lastSeenMessageRef.current ||
+          nextMessage.sentAtMs >= lastSeenMessageRef.current.sentAtMs)
       ) {
         lastSeenMessageRef.current = {
           id: nextMessage.id,
@@ -218,13 +219,6 @@ export default function ChatTab() {
       socketRef.current?.connect();
     }, delay);
   }, []);
-
-  const sendJoin = useCallback(
-    (socketInstance: ReturnType<typeof io>) => {
-      socketInstance.emit(CHAT_EVENTS.join, { coupleId, userId });
-    },
-    [coupleId, userId]
-  );
 
   const requestResync = useCallback(
     (socketInstance: ReturnType<typeof io>) => {
@@ -359,7 +353,6 @@ export default function ChatTab() {
       clearReconnectTimer();
       setConnectionStatus("connected");
       markActivity();
-      sendJoin(socket);
       requestResync(socket);
     };
 
@@ -435,7 +428,6 @@ export default function ChatTab() {
     markActivity,
     requestResync,
     scheduleReconnect,
-    sendJoin,
   ]);
 
   useLayoutEffect(() => {
@@ -611,7 +603,7 @@ export default function ChatTab() {
         kind: kind === "IMAGE" ? "image" : "text",
         text: text ?? undefined,
         imageSrc: imageUrl ?? undefined,
-      });
+      }, true);
 
       try {
         const response = await fetch(chatApiUrl, {
