@@ -10,12 +10,12 @@
 
 | 기능 | 설명 | 상태 |
 |------|------|------|
-| **캘린더** | 공유 일정/이벤트 CRUD (장소 검색, 약속 시간 포함) | 구현 완료 |
+| **캘린더** | 공유 일정 CRUD, 날짜별 목록 모달, 이벤트 미리보기 | 구현 완료 |
 | **커플 경로 안내** | 각자 집에서 약속 장소까지 최적 환승역 자동 분석 | 구현 완료 |
 | **장소 검색 (POI)** | Tmap POI 검색 기반 약속 장소 자동완성 입력 | 구현 완료 |
 | **채팅** | AES-256-GCM 암호화 실시간 메시징 (WebSocket + BullMQ) | 구현 완료 |
-| **갤러리** | 사진 공유, 전체화면 뷰어, 무한 스크롤 | UI 구현 (로컬 상태) |
-| **기념일** | 중요한 날짜와 마일스톤 추적 | 예정 |
+| **갤러리** | SHA-256 해시 파일 저장, 업로드/삭제, 무한 스크롤, 라이트박스 | 구현 완료 |
+| **설정** | 커플 정보 (이름·생일·만난날·집주소), 내 정보, 커플 끊기 | 구현 완료 |
 | **AI** | 스마트 추천 및 인사이트 | 예정 |
 
 ## 디자인 방향
@@ -33,30 +33,36 @@ linkly-calendar/                 # Turborepo 모노레포
 │   │   └── src/
 │   │       ├── chat/            # 채팅 (암호화, WebSocket, BullMQ 팬아웃)
 │   │       ├── chat-fanout/     # BullMQ 워커 + Redis Pub/Sub 브리지
+│   │       ├── couple/          # 커플 정보 조회/수정, 커플 끊기
 │   │       ├── event/           # 이벤트 CRUD + 경로 캐시 무효화
+│   │       ├── gallery/         # 사진 업로드/조회/삭제 (SHA-256 해시 파일명)
 │   │       ├── transit/         # Tmap 대중교통, POI 검색, 커플 경로 분석
-│   │       ├── user/            # 사용자 프로필 + 집 위치 관리
+│   │       ├── user/            # 사용자 프로필 (이름, 생일, 집 위치)
 │   │       ├── prisma/          # Prisma 서비스
 │   │       └── redis/           # Redis 연결 모듈
 │   └── web/                     # Next.js 프론트엔드 (포트 3000)
 │       └── src/
 │           ├── app/main/components/
-│           │   ├── CalendarTab     # FullCalendar + 이벤트 관리
+│           │   ├── CalendarTab     # FullCalendar + 날짜별 이벤트 관리
 │           │   ├── ChatTab         # 실시간 채팅 UI
-│           │   ├── PhotosTab       # 갤러리 그리드 + 뷰어
-│           │   ├── SettingsTab     # 설정 (집 위치 등록)
+│           │   ├── PhotosTab       # 갤러리 그리드 + 라이트박스 + 선택 삭제
+│           │   ├── SettingsTab     # 커플 정보 + 내 정보 + 커플 끊기
 │           │   ├── EventModal      # 이벤트 생성/수정 모달 + POI 검색
 │           │   ├── PoiSearchInput  # 장소 자동완성 드롭다운
 │           │   ├── RouteSummary    # 경로 요약 (만남역, 출발 시간)
 │           │   └── RouteDetail     # 구간별 상세 경로
 │           └── hooks/
 │               ├── useEvents       # 이벤트 CRUD + 낙관적 업데이트
+│               ├── usePhotos       # 사진 업로드/조회/삭제 + 커서 페이지네이션
+│               ├── useCouple       # 커플 정보 조회/수정/끊기
+│               ├── useUserProfile  # 내 정보 조회/수정
 │               ├── useCoupleRoute  # 커플 경로 분석 + 캐시 갱신
 │               └── usePoiSearch    # 디바운스 POI 검색 + 요청 취소
 ├── packages/
 │   ├── shared/                  # @linkly/shared (채팅 상수/타입)
 │   └── config/                  # @linkly/config (공통 설정)
 ├── prisma/                      # Prisma 스키마 + 마이그레이션 + 시드
+├── uploads/                     # 업로드 파일 저장소 (git 미추적)
 └── docker-compose.yml           # Postgres + Redis + db-init
 ```
 
@@ -67,7 +73,7 @@ linkly-calendar/                 # Turborepo 모노레포
 | **모노레포** | [Turborepo](https://turbo.build/) |
 | **패키지 매니저** | [PNPM](https://pnpm.io/) v9.12.0 |
 | **프론트엔드** | [Next.js](https://nextjs.org/), React 19, FullCalendar |
-| **백엔드** | [NestJS](https://nestjs.com/), Prisma, zod |
+| **백엔드** | [NestJS](https://nestjs.com/), Prisma, Multer |
 | **데이터베이스** | PostgreSQL 16 (Prisma ORM) |
 | **캐시/큐** | Redis 7, BullMQ, ioredis |
 | **실시간** | Socket.IO (WebSocket + Redis Pub/Sub) |
@@ -105,6 +111,12 @@ pnpm infra:down        # 인프라 중지
 - **Postgres**: `localhost:5432` (user: `linkly`, password: `linkly_local_password`, db: `linkly`)
 - **Redis**: `localhost:6379`
 
+### 스키마 변경 반영
+```bash
+npx prisma db push     # 스키마를 DB에 직접 반영 (개발용)
+npx prisma generate    # Prisma 클라이언트 재생성
+```
+
 ### 헬스 체크
 ```bash
 curl http://localhost:3001/health
@@ -130,6 +142,26 @@ pnpm lint
 | `GET` | `/v1/events/:id?userId=` | 단건 조회 |
 | `PATCH` | `/v1/events/:id?userId=` | 이벤트 수정 (경로 캐시 자동 무효화) |
 | `DELETE` | `/v1/events/:id?userId=` | 이벤트 삭제 (경로 캐시 자동 삭제) |
+
+### 커플 정보
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| `GET` | `/v1/couples/:id?userId=` | 커플 정보 조회 (멤버 이름·생일·집주소, 만난 날짜) |
+| `PATCH` | `/v1/couples/:id?userId=` | 커플 정보 수정 (만난 날짜, 나/상대 닉네임) |
+| `DELETE` | `/v1/couples/:id?userId=` | 커플 끊기 (cascade 전체 삭제) |
+
+### 갤러리 (사진)
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| `POST` | `/v1/photos` | 사진 업로드 (multipart, 최대 20장, 파일당 10MB) |
+| `GET` | `/v1/photos?coupleId=&userId=&cursor=&take=` | 사진 목록 (커서 페이지네이션) |
+| `DELETE` | `/v1/photos/:id?userId=` | 단건 삭제 (DB + 파일 하드 딜리트) |
+| `DELETE` | `/v1/photos` | 일괄 삭제 (body: `{ ids, userId }`) |
+
+업로드된 사진은 `uploads/photos/` 디렉토리에 SHA-256 해시 파일명으로 저장되고,
+`/uploads/photos/{hash}.ext` 경로로 정적 서빙됩니다.
 
 ### 커플 경로 안내
 
@@ -177,8 +209,8 @@ Tmap POI 검색 API를 통한 장소 자동완성
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
-| `GET` | `/v1/users/me?userId=` | 내 프로필 조회 |
-| `PATCH` | `/v1/users/me?userId=` | 프로필 수정 (집 위치 변경 시 경로 캐시 무효화) |
+| `GET` | `/v1/users/me?userId=` | 내 프로필 조회 (이름, 생일, 집 위치 등) |
+| `PATCH` | `/v1/users/me?userId=` | 프로필 수정 (이름, 생일, 집 위치, 경로 캐시 무효화) |
 
 ### 채팅
 
@@ -215,10 +247,11 @@ Tmap POI 검색 API를 통한 장소 자동완성
 
 | 항목 | 설정 |
 |------|------|
-| **HTTP 헤더** | Helmet 미들웨어 |
+| **HTTP 헤더** | Helmet 미들웨어 (`crossOriginResourcePolicy: cross-origin`) |
 | **CORS** | `CORS_ORIGINS` 환경 변수 기반 허용 목록 |
 | **Rate Limiting** | short: 10req/1s, medium: 100req/60s (ThrottlerGuard) |
 | **채팅 암호화** | AES-256-GCM + 키 버전 로테이션 |
+| **파일 업로드** | Multer (파일당 10MB, 요청당 20장 제한) |
 
 ---
 
@@ -228,8 +261,9 @@ Tmap POI 검색 API를 통한 장소 자동완성
 
 | 모델 | 설명 |
 |------|------|
-| `User` | 소셜/로컬 인증, 선택적 집 위치 (`homeLat`, `homeLng`, `homeAddress`) |
-| `Couple` + `CoupleMember` | 커플 등록/멤버십 (사용자당 1개 커플 제약) |
+| `User` | 소셜/로컬 인증, 생일, 집 위치 (`homeLat`, `homeLng`, `homeAddress`) |
+| `Couple` | 커플 상태, 만난 날짜 (`anniversaryDate`) |
+| `CoupleMember` | 커플 멤버십, 별칭 (`nickname`), 역할 (사용자당 1개 커플 제약) |
 | `CoupleInvite` | 초대/수락/거절/만료 흐름 |
 | `CalendarEvent` | 커플 공유 이벤트 (장소 좌표, 약속 시간 포함) |
 | `RouteCache` | 경로 분석 결과 DB 캐시 (24시간 TTL) |
@@ -274,6 +308,7 @@ npx prisma generate
 ---
 
 ## 참고 / 제한사항
-- 사진 업로드는 클라이언트 로컬 저장 방식입니다 (백엔드 저장소 미연동).
+- 사진은 `uploads/photos/` 디렉토리에 SHA-256 해시 파일명으로 로컬 저장됩니다. S3 등 외부 저장소 미연동.
 - `CoupleMember.userId`는 **사용자당 1개 커플**을 강제하는 unique 제약이 있습니다.
 - 인증은 아직 스켈레톤 수준입니다 (userId를 쿼리 파라미터로 전달).
+- 커플 끊기 시 Couple 레코드 삭제로 일정·사진·채팅 등 모든 관련 데이터가 cascade 삭제됩니다.
