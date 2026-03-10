@@ -1,0 +1,8 @@
+.container { padding: 16px; }
+.loading { padding: 24px; text-align: center; color: #888; }
+.heading { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.section { margin-bottom: 16px; }
+.label { font-size: 13px; color: #666; display: block; margin-bottom: 4px; }
+.value { font-size: 15px; margin: 0; }
+.currentHome { font-size: 14px; color: #333; margin: 0 0 8px; }
+.saving { font-size: 13px; color: #1976d2; margin-top: 4px; }

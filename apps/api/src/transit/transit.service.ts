@@ -13,6 +13,7 @@ import { RouteComputeDto } from './dto/route-compute.dto';
 type TransitRequestPayload = Record<string, unknown>;
 
 const TMAP_TRANSIT_URL = 'https://apis.openapi.sk.com/transit/routes';
+const TMAP_POI_URL = 'https://apis.openapi.sk.com/tmap/pois';
 const DEFAULT_BUCKET_MINUTES = 5;
 const DEFAULT_TTL_MIN_SECONDS = 120;
 const DEFAULT_TTL_MAX_SECONDS = 300;
@@ -44,6 +45,55 @@ export class TransitService {
     if (!this.appKey) {
       this.logger.warn('TMAP_APP_KEY is missing. Transit requests will fail.');
     }
+  }
+
+  async searchPoi(keyword: string, page = 1) {
+    const params = new URLSearchParams({
+      version: '1',
+      searchKeyword: keyword,
+      page: String(page),
+      count: '10',
+      resCoordType: 'WGS84GEO',
+      searchType: 'all',
+    });
+
+    let response: Response;
+    try {
+      response = await fetch(`${TMAP_POI_URL}?${params}`, {
+        headers: { accept: 'application/json', appKey: this.appKey },
+        signal: AbortSignal.timeout(this.httpTimeoutMs),
+      });
+    } catch (error) {
+      this.logger.error('TMAP POI API request failed', error as Error);
+      throw new BadGatewayException('TMAP POI API request failed');
+    }
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      this.logger.error(`TMAP POI API failed (${response.status}) ${errorBody}`);
+      throw new BadGatewayException('TMAP POI API request failed');
+    }
+
+    const body = (await response.json()) as Record<string, unknown>;
+    return this.sanitizePoiResponse(body);
+  }
+
+  private sanitizePoiResponse(body: Record<string, unknown>) {
+    const searchPoiInfo = body.searchPoiInfo as Record<string, unknown> | undefined;
+    const pois = searchPoiInfo?.pois as Record<string, unknown> | undefined;
+    const poiList = pois?.poi;
+    if (!Array.isArray(poiList)) return { results: [] };
+
+    const results = poiList.map((poi: Record<string, unknown>) => ({
+      name: poi.name as string,
+      address: [poi.upperAddrName, poi.middleAddrName, poi.lowerAddrName, poi.detailAddrName]
+        .filter(Boolean)
+        .join(' '),
+      lat: parseFloat(poi.frontLat as string),
+      lng: parseFloat(poi.frontLon as string),
+    }));
+
+    return { results };
   }
 
   async computeRoute(payload: RouteComputeDto): Promise<unknown> {
@@ -287,6 +337,7 @@ export class TransitService {
         totalTime: typed.totalTime,
         totalWalkTime: typed.totalWalkTime,
         transferCount: typed.transferCount,
+        legs: typed.legs,
       };
     });
 

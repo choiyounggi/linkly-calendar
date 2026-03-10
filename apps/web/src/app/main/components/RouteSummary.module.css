@@ -1,0 +1,12 @@
+.container { padding: 12px; background: #f8f9fa; border-radius: 8px; margin-top: 12px; }
+.summary { display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; justify-content: space-between; font-size: 14px; }
+.label { color: #666; }
+.value { font-weight: 500; }
+.meetup { font-size: 13px; color: #e91e63; font-weight: 500; margin-top: 4px; }
+.noOverlap { font-size: 13px; color: #888; margin-top: 4px; }
+.actions { display: flex; gap: 8px; margin-top: 10px; }
+.detailBtn { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
+.detailBtn:hover { background: #f0f0f0; }
+.refreshBtn { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
+.refreshBtn:hover { background: #f0f0f0; }

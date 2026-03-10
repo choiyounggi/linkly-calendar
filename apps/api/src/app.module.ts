@@ -8,6 +8,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TransitModule } from './transit/transit.module';
 import { ChatModule } from './chat/chat.module';
+import { EventModule } from './event/event.module';
+import { UserModule } from './user/user.module';
 
 const envCandidates = [
   path.resolve(process.cwd(), '.env.local'),
@@ -32,6 +34,8 @@ const envFilePath = envCandidates.filter((candidate) => existsSync(candidate));
     }),
     TransitModule,
     ChatModule,
+    EventModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [

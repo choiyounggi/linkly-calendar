@@ -3,12 +3,17 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import styles from "./EventModal.module.css";
+import PoiSearchInput from "./PoiSearchInput";
+import type { PoiResult } from "../../../hooks/usePoiSearch";
 
 export interface EventFormData {
   title: string;
-  location: string;
-  expected: string;
-  details: string;
+  appointmentAt: string;       // ISO datetime-local string (YYYY-MM-DDTHH:mm)
+  placeName: string;
+  placeAddress: string;
+  placeLat: number | null;
+  placeLng: number | null;
+  detail: string;
 }
 
 interface EventModalProps {
@@ -23,9 +28,12 @@ interface EventModalProps {
 
 const emptyEvent: EventFormData = {
   title: "",
-  location: "",
-  expected: "",
-  details: "",
+  appointmentAt: "",
+  placeName: "",
+  placeAddress: "",
+  placeLat: null,
+  placeLng: null,
+  detail: "",
 };
 
 export default function EventModal({
@@ -130,9 +138,12 @@ function EventModalContent({
     }
     return (
       formData.title !== originalData.title ||
-      formData.location !== originalData.location ||
-      formData.expected !== originalData.expected ||
-      formData.details !== originalData.details
+      formData.appointmentAt !== originalData.appointmentAt ||
+      formData.placeName !== originalData.placeName ||
+      formData.placeAddress !== originalData.placeAddress ||
+      formData.placeLat !== originalData.placeLat ||
+      formData.placeLng !== originalData.placeLng ||
+      formData.detail !== originalData.detail
     );
   }, [existingEvent, formData, originalData]);
 
@@ -140,15 +151,37 @@ function EventModalContent({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handlePoiSelect = (poi: PoiResult) => {
+    setFormData((prev) => ({
+      ...prev,
+      placeName: poi.name,
+      placeAddress: poi.address,
+      placeLat: poi.lat,
+      placeLng: poi.lng,
+    }));
+  };
+
+  const handlePoiClear = () => {
+    setFormData((prev) => ({
+      ...prev,
+      placeName: "",
+      placeAddress: "",
+      placeLat: null,
+      placeLng: null,
+    }));
+  };
+
+  const isFormValid = isTitleValid && formData.appointmentAt !== "";
+
   const handleCreate = () => {
-    if (!isTitleValid) {
+    if (!isFormValid) {
       return;
     }
     onCreate(selectedDateValue, { ...formData, title: formData.title.trim() });
   };
 
   const handleUpdate = () => {
-    if (!isTitleValid || !isDirty) {
+    if (!isFormValid || !isDirty) {
       return;
     }
     onUpdate(selectedDateValue, { ...formData, title: formData.title.trim() });
@@ -190,39 +223,39 @@ function EventModalContent({
               type="text"
               placeholder="일정 제목"
               value={formData.title}
-              onChange={(event) => handleChange("title", event.target.value)}
+              onChange={(e) => handleChange("title", e.target.value)}
             />
             <span className={styles.helper}>필수 입력</span>
           </label>
           <label className={styles.field}>
-            장소
+            약속 시간
             <input
-              type="text"
-              placeholder="장소"
-              value={formData.location}
-              onChange={(event) => handleChange("location", event.target.value)}
+              type="datetime-local"
+              value={formData.appointmentAt}
+              onChange={(e) => handleChange("appointmentAt", e.target.value)}
             />
-            <span className={styles.helper}>온라인/오프라인 장소</span>
+            <span className={styles.helper}>필수 입력</span>
           </label>
-          <label className={styles.field}>
-            예상 일정(시간/기간)
-            <input
-              type="text"
-              placeholder="예: 14:00~16:00 또는 2시간"
-              value={formData.expected}
-              onChange={(event) => handleChange("expected", event.target.value)}
+          <div className={styles.field}>
+            <span>장소</span>
+            <PoiSearchInput
+              value={formData.placeName}
+              onSelect={handlePoiSelect}
+              onClear={handlePoiClear}
+              placeholder="장소 검색"
             />
-            <span className={styles.helper}>시간 범위나 소요 시간</span>
-          </label>
+            {formData.placeAddress && (
+              <span className={styles.helper}>{formData.placeAddress}</span>
+            )}
+          </div>
           <label className={styles.field}>
-            일정 상세
+            메모
             <textarea
               rows={4}
               placeholder="상세 내용"
-              value={formData.details}
-              onChange={(event) => handleChange("details", event.target.value)}
+              value={formData.detail}
+              onChange={(e) => handleChange("detail", e.target.value)}
             />
-            <span className={styles.helper}>추가 메모</span>
           </label>
         </div>
         <footer className={styles.footer}>
@@ -239,7 +272,7 @@ function EventModalContent({
                 type="button"
                 className={styles.primaryButton}
                 onClick={handleUpdate}
-                disabled={!isTitleValid || !isDirty}
+                disabled={!isFormValid || !isDirty}
               >
                 수정
               </button>
@@ -249,7 +282,7 @@ function EventModalContent({
               type="button"
               className={styles.primaryButton}
               onClick={handleCreate}
-              disabled={!isTitleValid}
+              disabled={!isFormValid}
             >
               등록
             </button>

@@ -38,8 +38,8 @@ enum ChatMessageKind {
 }
 
 model User {
-  id             String     @id @default(cuid())
-  email          String?    @unique
+  id             String       @id @default(cuid())
+  email          String?      @unique
   displayName    String
   avatarUrl      String?
   authProvider   AuthProvider
@@ -48,24 +48,25 @@ model User {
   homeLng        Float?
   homeAddress    String?
   homeUpdatedAt  DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  coupleMembers      CoupleMember[]
-  invitesSent        CoupleInvite[] @relation("InvitesSent")
-  invitesReceived    CoupleInvite[] @relation("InvitesReceived")
-  createdEvents      CalendarEvent[]
-  galleryPhotos      GalleryPhoto[]
-  sentChatMessages   ChatMessage[]
+  coupleMembers    CoupleMember[]
+  invitesSent      CoupleInvite[]  @relation("InvitesSent")
+  invitesReceived  CoupleInvite[]  @relation("InvitesReceived")
+  createdEvents    CalendarEvent[]
+  galleryPhotos    GalleryPhoto[]
+  sentChatMessages ChatMessage[]
+  routeCaches      RouteCache[]
 
   @@unique([authProvider, providerUserId])
 }
 
 model Couple {
-  id        String        @id @default(cuid())
-  status    CoupleStatus  @default(PENDING)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id        String       @id @default(cuid())
+  status    CoupleStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   members       CoupleMember[]
   invites       CoupleInvite[]
@@ -111,40 +112,52 @@ model CoupleInvite {
 }
 
 model CalendarEvent {
-  id               String   @id @default(cuid())
-  coupleId         String
-  title            String
-  description      String?
-  place            String?
-  expectedSchedule String?
-  detail           String?
-  startAt          DateTime?
-  endAt            DateTime?
-  allDay           Boolean  @default(false)
-  meetupLat        Float?
-  meetupLng        Float?
-  meetupName       String?
-  meetupNote       String?
-  createdByUserId  String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String    @id @default(cuid())
+  coupleId        String
+  title           String
+  placeName       String?
+  placeAddress    String?
+  placeLat        Float?
+  placeLng        Float?
+  appointmentAt   DateTime?
+  detail          String?
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  couple   Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  createdBy User  @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  couple      Couple       @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  routeCaches RouteCache[]
 
   @@index([coupleId])
   @@index([createdByUserId])
 }
 
+model RouteCache {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  cacheKey  String   @unique
+  routeData Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, userId])
+  @@index([expiresAt])
+}
+
 model GalleryPhoto {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   coupleId         String
   uploadedByUserId String
   url              String
   thumbnailUrl     String?
   caption          String?
   takenAt          DateTime?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime  @default(now())
 
   couple     Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
   uploadedBy User   @relation(fields: [uploadedByUserId], references: [id], onDelete: Cascade)
