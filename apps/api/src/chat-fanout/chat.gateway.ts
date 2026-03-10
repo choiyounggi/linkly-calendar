@@ -6,24 +6,22 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import type Redis from 'ioredis';
-import type { Socket } from 'socket.io';
 import { Server } from 'socket.io';
-import { CHAT_NAMESPACE, roomForCouple } from '../chat/chat.constants';
+import { CHAT_EVENTS, CHAT_NAMESPACE, roomForCouple } from '../chat/chat.constants';
+
+const CHANNEL_PREFIX = 'chat:couple:';
 
 @WebSocketGateway({ namespace: CHAT_NAMESPACE })
 @Injectable()
-export class ChatGateway implements OnModuleInit, OnModuleDestroy {
+export class ChatFanoutGateway implements OnModuleInit, OnModuleDestroy {
   @WebSocketServer()
   private readonly server!: Server;
 
-  private readonly logger = new Logger(ChatGateway.name);
+  private readonly logger = new Logger(ChatFanoutGateway.name);
   private subscriber: Redis;
 
   constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {
@@ -32,43 +30,18 @@ export class ChatGateway implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     await this.subscriber.connect();
-    await this.subscriber.psubscribe('chat:couple:*');
+    await this.subscriber.psubscribe(`${CHANNEL_PREFIX}*`);
 
     this.subscriber.on('pmessage', (_: string, channel: string, payload: string) => {
-      const coupleId = channel.split(':')[2];
-      let messageId = payload;
+      const coupleId = channel.slice(CHANNEL_PREFIX.length);
 
       try {
-        const parsed = JSON.parse(payload) as { messageId?: string };
-        messageId = parsed.messageId ?? payload;
+        const message = JSON.parse(payload) as Record<string, unknown>;
+        this.server.to(roomForCouple(coupleId)).emit(CHAT_EVENTS.message, message);
       } catch {
-        // 무시: 원본 페이로드를 그대로 유지
+        this.logger.warn(`Failed to parse fanout payload for couple ${coupleId}`);
       }
-
-      this.server.to(roomForCouple(coupleId)).emit('chat:message', {
-        messageId,
-      });
     });
-  }
-
-  @SubscribeMessage('join')
-  handleJoin(
-    @MessageBody() data: { coupleId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const handshakeCoupleId =
-      (client.handshake.auth as Record<string, unknown>)?.coupleId ??
-      client.handshake.query?.coupleId;
-
-    if (!handshakeCoupleId || handshakeCoupleId !== data.coupleId) {
-      this.logger.warn(
-        `Client ${client.id} tried to join room for couple ${data.coupleId} but handshake coupleId does not match.`,
-      );
-      return;
-    }
-
-    const room = roomForCouple(data.coupleId);
-    void client.join(room);
   }
 
   async onModuleDestroy() {

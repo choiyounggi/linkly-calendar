@@ -32,6 +32,7 @@ type ApiChatMessage = {
   text?: string | null;
   imageUrl?: string | null;
   sentAtMs?: number;
+  clientMessageId?: string;
 };
 
 const HEALTHCHECK_INTERVAL_MS = 15_000;
@@ -105,6 +106,8 @@ export default function ChatTab() {
   const lastSeenMessageRef = useRef<{ id: string; sentAtMs: number } | null>(null);
   const isUnmountingRef = useRef(false);
   const isPrependingRef = useRef(false);
+  const isFetchingOlderRef = useRef(false);
+  const hasMoreServerRef = useRef(true);
   const shouldStickToBottomRef = useRef(true);
   const previousScrollHeightRef = useRef<number | null>(null);
   const previousMessageCountRef = useRef(0);
@@ -176,6 +179,7 @@ export default function ChatTab() {
 
   const handleIncomingMessage = useCallback(
     (payload: ApiChatMessage) => {
+      if (payload.clientMessageId && seenMessageIdsRef.current.has(payload.clientMessageId)) return;
       const mapped = mapApiMessage(payload);
       if (!mapped) return;
       appendMessage(mapped);
@@ -323,6 +327,9 @@ export default function ChatTab() {
           lastSeenMessageRef.current = { id: latest.id, sentAtMs: latest.sentAtMs };
         }
         setStartIndex(Math.max(0, mapped.length - INITIAL_BATCH));
+        if (mapped.length < INITIAL_BATCH + LOAD_BATCH) {
+          hasMoreServerRef.current = false;
+        }
         hasInitialScrollRef.current = false;
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -467,17 +474,72 @@ export default function ChatTab() {
     };
   }, []);
 
+  const fetchOlderFromServer = useCallback(async () => {
+    if (!chatIdentity || !hasMoreServerRef.current || isFetchingOlderRef.current) return;
+
+    const oldest = sortedMessages[0];
+    if (!oldest) return;
+
+    isFetchingOlderRef.current = true;
+    isPrependingRef.current = true;
+    const list = messageListRef.current;
+    if (list) previousScrollHeightRef.current = list.scrollHeight;
+
+    try {
+      const params = new URLSearchParams({
+        coupleId: chatIdentity.coupleId,
+        userId: chatIdentity.userId,
+        limit: String(LOAD_BATCH),
+        beforeMs: String(oldest.sentAtMs),
+      });
+      const response = await fetch(`${chatApiUrl}?${params.toString()}`);
+      if (!response.ok) {
+        isPrependingRef.current = false;
+        return;
+      }
+      const payload = await response.json();
+      const items = Array.isArray(payload?.messages) ? payload.messages : [];
+      const mapped = items
+        .map((item: ApiChatMessage) => mapApiMessage(item))
+        .filter(Boolean) as ChatMessage[];
+
+      if (mapped.length < LOAD_BATCH) {
+        hasMoreServerRef.current = false;
+      }
+
+      if (mapped.length > 0) {
+        setAllMessages((prev) => {
+          const newMessages = mapped.filter(
+            (m) => !seenMessageIdsRef.current.has(m.id)
+          );
+          newMessages.forEach((m) => seenMessageIdsRef.current.add(m.id));
+          return [...newMessages, ...prev];
+        });
+      } else {
+        isPrependingRef.current = false;
+      }
+    } catch {
+      isPrependingRef.current = false;
+    } finally {
+      isFetchingOlderRef.current = false;
+    }
+  }, [chatApiUrl, chatIdentity, mapApiMessage, sortedMessages]);
+
   const loadOlderMessages = useCallback(() => {
     const list = messageListRef.current;
-    if (!list || startIndex === 0 || isPrependingRef.current) return;
+    if (!list || isPrependingRef.current) return;
 
-    const nextStartIndex = Math.max(0, startIndex - LOAD_BATCH);
-    if (nextStartIndex === startIndex) return;
+    if (startIndex > 0) {
+      const nextStartIndex = Math.max(0, startIndex - LOAD_BATCH);
+      if (nextStartIndex === startIndex) return;
 
-    isPrependingRef.current = true;
-    previousScrollHeightRef.current = list.scrollHeight;
-    setStartIndex(nextStartIndex);
-  }, [startIndex]);
+      isPrependingRef.current = true;
+      previousScrollHeightRef.current = list.scrollHeight;
+      setStartIndex(nextStartIndex);
+    } else if (hasMoreServerRef.current) {
+      void fetchOlderFromServer();
+    }
+  }, [startIndex, fetchOlderFromServer]);
 
   const updateStickiness = useCallback(() => {
     const list = messageListRef.current;
@@ -539,6 +601,8 @@ export default function ChatTab() {
       if (!coupleId || !userId) return;
       const clientMessageId = createClientMessageId();
       const sentAtMs = Date.now();
+
+      shouldStickToBottomRef.current = true;
 
       appendMessage({
         id: clientMessageId,

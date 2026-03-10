@@ -29,4 +29,10 @@ export class ChatFetchQueryDto {
   @IsInt()
   @Min(1)
   beforeMs?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  afterMs?: number;
 }

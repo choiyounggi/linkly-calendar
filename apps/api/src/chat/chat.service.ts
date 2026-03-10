@@ -52,30 +52,32 @@ export class ChatService {
       },
     });
 
+    const view = this.toView(record, payload.text ?? null, payload.imageUrl ?? null);
+
     await this.fanoutQueue.queue.add('fanout', {
       coupleId: payload.coupleId,
-      messageId: record.id,
+      message: { ...view, clientMessageId: payload.clientMessageId },
     });
 
-    return this.toView(record, payload.text ?? null, payload.imageUrl ?? null);
+    return view;
   }
 
   async fetchMessages(query: ChatFetchQueryDto) {
     await this.ensureCoupleMember(query.coupleId, query.userId);
 
+    const sentAtMsFilter: Record<string, bigint> = {};
+    if (query.beforeMs) sentAtMsFilter.lt = BigInt(query.beforeMs);
+    if (query.afterMs) sentAtMsFilter.gt = BigInt(query.afterMs);
+
     const messages = await this.prisma.chatMessage.findMany({
       where: {
         coupleId: query.coupleId,
-        ...(query.beforeMs
-          ? {
-              sentAtMs: {
-                lt: BigInt(query.beforeMs),
-              },
-            }
+        ...(Object.keys(sentAtMsFilter).length > 0
+          ? { sentAtMs: sentAtMsFilter }
           : {}),
       },
       orderBy: {
-        sentAtMs: 'desc',
+        sentAtMs: query.afterMs ? 'asc' : 'desc',
       },
       take: query.limit,
     });

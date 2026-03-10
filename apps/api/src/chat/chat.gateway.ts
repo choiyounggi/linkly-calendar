@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import type { DefaultEventsMap, Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
+import { ChatFetchQueryDto } from './dto/chat-fetch.dto';
 
 type ChatSocketData = {
   coupleId?: string;
@@ -129,11 +130,35 @@ export class ChatGateway {
 
     const message = await this.chatService.createMessage(payload);
 
-    this.server
-      .to(roomForCouple(payload.coupleId))
-      .emit(CHAT_EVENTS.message, { messageId: message.id });
-
     return { ok: true, message };
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.sync)
+  async handleSync(
+    @MessageBody() data: { sinceMs?: number },
+    @ConnectedSocket() client: ChatSocket,
+  ) {
+    this.touchHeartbeat(client);
+
+    const { coupleId, userId } = client.data;
+    if (!coupleId || !userId) return { messages: [] };
+
+    const sinceMs = typeof data.sinceMs === 'number' && data.sinceMs > 0
+      ? data.sinceMs
+      : undefined;
+
+    try {
+      const dto = Object.assign(new ChatFetchQueryDto(), {
+        coupleId,
+        userId,
+        limit: 50,
+        afterMs: sinceMs,
+      });
+      const messages = await this.chatService.fetchMessages(dto);
+      return { messages };
+    } catch {
+      return { messages: [] };
+    }
   }
 
   private readHandshake(client: ChatSocket) {

@@ -4,9 +4,21 @@ import { redisConfig } from '../redis/redis.config';
 
 export const CHAT_FANOUT_QUEUE = 'chat-fanout';
 
+export type ChatFanoutMessage = {
+  id: string;
+  coupleId: string;
+  senderUserId: string;
+  kind: string;
+  text: string | null;
+  imageUrl: string | null;
+  sentAtMs: number;
+  createdAt: string;
+  clientMessageId?: string;
+};
+
 export type ChatFanoutJob = {
   coupleId: string;
-  messageId: string;
+  message: ChatFanoutMessage;
 };
 
 @Injectable()

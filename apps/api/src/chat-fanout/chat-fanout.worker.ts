@@ -21,10 +21,10 @@ export class ChatFanoutWorker implements OnModuleInit, OnModuleDestroy {
     this.worker = new Worker<ChatFanoutJob>(
       CHAT_FANOUT_QUEUE,
       async (job) => {
-        const { coupleId, messageId } = job.data;
+        const { coupleId, message } = job.data;
         await this.redis.publish(
           `chat:couple:${coupleId}`,
-          JSON.stringify({ messageId }),
+          JSON.stringify(message),
         );
       },
       { connection: redisConfig() },
