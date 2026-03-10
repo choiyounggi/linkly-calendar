@@ -1,26 +1,46 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction";
 import type { DatesSetArg } from "@fullcalendar/core";
 import EventModal, { type EventFormData } from "./EventModal";
 import { useEvents, type CalendarEventData } from "../../../hooks/useEvents";
+import { useCoupleRoute } from "../../../hooks/useCoupleRoute";
+import RouteSummary from "./RouteSummary";
+import RouteDetail from "./RouteDetail";
 import styles from "./CalendarTab.module.css";
 
 // TODO: Replace with actual auth context
 const COUPLE_ID = "seed_couple_1_id";
 const USER_ID = "seed_user_1_id";
 
+type ModalView = "closed" | "list" | "create" | "edit";
+
 export default function CalendarTab() {
   const { events, setCurrentMonth, createEvent, updateEvent, deleteEvent } =
     useEvents(COUPLE_ID, USER_ID);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] =
-    useState<CalendarEventData | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventData | null>(null);
+  const [modalView, setModalView] = useState<ModalView>("closed");
+  const [showRouteDetail, setShowRouteDetail] = useState(false);
+
+  // 경로 분석: 기존 이벤트에 장소가 있을 때만 요청
+  const hasLocation = Boolean(selectedEvent?.placeLat && selectedEvent?.placeLng);
+  const routeEventId = modalView === "edit" && hasLocation ? selectedEvent?.id ?? null : null;
+  const { route, loading: routeLoading, error: routeError, refresh: refreshRoute } =
+    useCoupleRoute(routeEventId, USER_ID);
+
+  // 선택된 날짜의 이벤트 목록
+  const dayEvents = useMemo(() => {
+    if (!selectedDate) return [];
+    return events.filter((e) => e.appointmentAt?.startsWith(selectedDate));
+  }, [events, selectedDate]);
+
+  // FullCalendar 이벤트 데이터
   const calendarEvents = useMemo(
     () =>
       events.map((e) => ({
@@ -32,12 +52,22 @@ export default function CalendarTab() {
   );
 
   const handleDateClick = (info: DateClickArg) => {
-    setSelectedDate(info.dateStr);
-    const existing = events.find((e) =>
-      e.appointmentAt?.startsWith(info.dateStr),
-    );
-    setSelectedEvent(existing ?? null);
-    setIsModalOpen(true);
+    const dateStr = info.dateStr;
+    setSelectedDate(dateStr);
+    setShowRouteDetail(false);
+
+    const eventsOnDay = events.filter((e) => e.appointmentAt?.startsWith(dateStr));
+
+    if (eventsOnDay.length === 0) {
+      setSelectedEvent(null);
+      setModalView("create");
+    } else if (eventsOnDay.length === 1) {
+      setSelectedEvent(eventsOnDay[0]);
+      setModalView("edit");
+    } else {
+      setSelectedEvent(null);
+      setModalView("list");
+    }
   };
 
   const handleDatesSet = useCallback(
@@ -50,9 +80,27 @@ export default function CalendarTab() {
   );
 
   const handleClose = () => {
-    setIsModalOpen(false);
     setSelectedDate(null);
     setSelectedEvent(null);
+    setModalView("closed");
+    setShowRouteDetail(false);
+  };
+
+  const handleSelectEvent = (event: CalendarEventData) => {
+    setSelectedEvent(event);
+    setModalView("edit");
+    setShowRouteDetail(false);
+  };
+
+  const handleNewEvent = () => {
+    setSelectedEvent(null);
+    setModalView("create");
+  };
+
+  const handleBackToList = () => {
+    setSelectedEvent(null);
+    setModalView("list");
+    setShowRouteDetail(false);
   };
 
   const toFormData = (e: CalendarEventData): EventFormData => ({
@@ -114,6 +162,36 @@ export default function CalendarTab() {
     handleClose();
   };
 
+  // 경로 섹션 렌더링
+  let routeSection: ReactNode = null;
+  if (modalView === "edit" && hasLocation) {
+    if (routeLoading) {
+      routeSection = <div className={styles.routeStatus}>경로 분석 중...</div>;
+    } else if (routeError) {
+      routeSection = <div className={styles.routeStatus}>{routeError}</div>;
+    } else if (route && !showRouteDetail) {
+      routeSection = (
+        <RouteSummary
+          route={route}
+          onDetailClick={() => setShowRouteDetail(true)}
+          onRefresh={refreshRoute}
+        />
+      );
+    } else if (route && showRouteDetail) {
+      routeSection = (
+        <RouteDetail
+          legs={route.myRoute.legs as Record<string, unknown>[]}
+          meetupStationName={route.meetupStation?.name}
+          partnerDepartureTime={route.partnerDepartureTime}
+          onBack={() => setShowRouteDetail(false)}
+        />
+      );
+    }
+  }
+
+  // 뒤로가기: 목록에서 온 경우 목록으로, 아니면 닫기
+  const handleFormClose = dayEvents.length > 1 ? handleBackToList : handleClose;
+
   return (
     <div className={styles.calendarTab}>
       <div className={styles.calendarCard}>
@@ -131,15 +209,57 @@ export default function CalendarTab() {
           }
         />
       </div>
-      <EventModal
-        isOpen={isModalOpen}
-        selectedDate={selectedDate}
-        existingEvent={selectedEvent ? toFormData(selectedEvent) : null}
-        onClose={handleClose}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
+
+      {/* 일정 목록 모달 (해당 날짜에 2개 이상 이벤트) */}
+      {modalView === "list" && selectedDate && (
+        <div className={styles.overlay} role="dialog" aria-modal="true" onClick={handleClose}>
+          <div className={styles.dayModal} onClick={(e) => e.stopPropagation()}>
+            <header className={styles.dayModalHeader}>
+              <h3 className={styles.dayModalTitle}>{selectedDate}</h3>
+              <button type="button" onClick={handleClose} className={styles.dayModalClose}>
+                &times;
+              </button>
+            </header>
+            <div className={styles.eventList}>
+              {dayEvents.map((ev) => (
+                <button
+                  key={ev.id}
+                  type="button"
+                  className={styles.eventCard}
+                  onClick={() => handleSelectEvent(ev)}
+                >
+                  <span className={styles.eventCardTitle}>{ev.title}</span>
+                  <span className={styles.eventCardMeta}>
+                    {ev.appointmentAt &&
+                      new Date(ev.appointmentAt).toLocaleTimeString("ko-KR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    {ev.placeName && ` · ${ev.placeName}`}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button type="button" className={styles.newEventBtn} onClick={handleNewEvent}>
+              + 새 일정 추가
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 일정 생성/수정 모달 */}
+      {(modalView === "create" || modalView === "edit") && (
+        <EventModal
+          isOpen={true}
+          selectedDate={selectedDate}
+          existingEvent={selectedEvent ? toFormData(selectedEvent) : null}
+          onClose={handleFormClose}
+          onCreate={handleCreate}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          routeSection={routeSection}
+        />
+      )}
     </div>
   );
 }

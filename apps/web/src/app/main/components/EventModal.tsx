@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import styles from "./EventModal.module.css";
 import PoiSearchInput from "./PoiSearchInput";
 import type { PoiResult } from "../../../hooks/usePoiSearch";
@@ -24,6 +24,7 @@ interface EventModalProps {
   onCreate: (date: string, event: EventFormData) => void;
   onUpdate: (date: string, event: EventFormData) => void;
   onDelete: (date: string) => void;
+  routeSection?: ReactNode;
 }
 
 const emptyEvent: EventFormData = {
@@ -44,6 +45,7 @@ export default function EventModal({
   onCreate,
   onUpdate,
   onDelete,
+  routeSection,
 }: EventModalProps) {
   const isActive = isOpen && Boolean(selectedDate);
   const selectedDateValue = selectedDate ?? "";
@@ -66,6 +68,7 @@ export default function EventModal({
       onCreate={onCreate}
       onUpdate={onUpdate}
       onDelete={onDelete}
+      routeSection={routeSection}
     />
   );
 }
@@ -77,6 +80,7 @@ interface EventModalContentProps {
   onCreate: (date: string, event: EventFormData) => void;
   onUpdate: (date: string, event: EventFormData) => void;
   onDelete: (date: string) => void;
+  routeSection?: ReactNode;
 }
 
 function EventModalContent({
@@ -86,6 +90,7 @@ function EventModalContent({
   onCreate,
   onUpdate,
   onDelete,
+  routeSection,
 }: EventModalContentProps) {
   const baseEvent = existingEvent ?? emptyEvent;
   const [formData, setFormData] = useState<EventFormData>(() => ({ ...baseEvent }));
@@ -258,6 +263,9 @@ function EventModalContent({
             />
           </label>
         </div>
+        {routeSection && (
+          <div className={styles.routeSection}>{routeSection}</div>
+        )}
         <footer className={styles.footer}>
           {existingEvent ? (
             <>

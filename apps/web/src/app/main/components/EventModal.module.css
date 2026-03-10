@@ -11,6 +11,8 @@
 
 .modal {
   width: min(480px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   background: #ffffff;
   border-radius: 20px;
   padding: 20px 20px 16px;
@@ -132,4 +134,9 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.routeSection {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 8px;
 }
