@@ -5,11 +5,10 @@ import { useCoupleInvite } from "../../../hooks/useCoupleInvite";
 import styles from "./CoupleSetup.module.css";
 
 interface CoupleSetupProps {
-  userId: string;
   onCoupleReady: (coupleId: string) => void;
 }
 
-export default function CoupleSetup({ userId, onCoupleReady }: CoupleSetupProps) {
+export default function CoupleSetup({ onCoupleReady }: CoupleSetupProps) {
   const {
     sentInvite,
     receivedInvites,
@@ -19,7 +18,7 @@ export default function CoupleSetup({ userId, onCoupleReady }: CoupleSetupProps)
     acceptInvite,
     declineInvite,
     searchUser,
-  } = useCoupleInvite(userId);
+  } = useCoupleInvite();
 
   const [activeTab, setActiveTab] = useState<"received" | "send">("received");
 

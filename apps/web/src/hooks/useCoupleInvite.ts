@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authFetch } from '../lib/api';
 
 export interface InviteUser {
   id: string;
@@ -23,39 +22,16 @@ export interface ReceivedInvite {
   createdAt: string;
 }
 
-export interface UserStatus {
-  userId: string;
-  hasCouple: boolean;
-  coupleId: string | null;
-  hasHomeAddress: boolean;
-}
-
-export function useCoupleInvite(userId: string) {
-  const [status, setStatus] = useState<UserStatus | null>(null);
+export function useCoupleInvite() {
   const [sentInvite, setSentInvite] = useState<SentInvite | null>(null);
   const [receivedInvites, setReceivedInvites] = useState<ReceivedInvite[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStatus = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const res = await fetch(`${API_URL}/v1/users/me/status?userId=${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch status');
-      const data = (await res.json()) as UserStatus;
-      setStatus(data);
-      return data;
-    } catch (error) {
-      console.error('Failed to fetch status:', error);
-      return null;
-    }
-  }, [userId]);
-
   const fetchInvites = useCallback(async () => {
-    if (!userId) return;
     try {
       const [sentRes, receivedRes] = await Promise.all([
-        fetch(`${API_URL}/v1/couples/invites/sent?userId=${userId}`),
-        fetch(`${API_URL}/v1/couples/invites/received?userId=${userId}`),
+        authFetch('/v1/couples/invites/sent'),
+        authFetch('/v1/couples/invites/received'),
       ]);
       if (sentRes.ok) {
         const data = await sentRes.json();
@@ -68,22 +44,21 @@ export function useCoupleInvite(userId: string) {
     } catch (error) {
       console.error('Failed to fetch invites:', error);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await fetchStatus();
       await fetchInvites();
       setLoading(false);
     })();
-  }, [fetchStatus, fetchInvites]);
+  }, [fetchInvites]);
 
   const sendInvite = useCallback(async (inviteeEmail: string) => {
-    const res = await fetch(`${API_URL}/v1/couples/invites`, {
+    const res = await authFetch('/v1/couples/invites', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, inviteeEmail }),
+      body: JSON.stringify({ inviteeEmail }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -92,47 +67,40 @@ export function useCoupleInvite(userId: string) {
     const data = (await res.json()) as SentInvite;
     setSentInvite(data);
     return data;
-  }, [userId]);
+  }, []);
 
   const cancelInvite = useCallback(async () => {
-    const res = await fetch(`${API_URL}/v1/couples/invites/sent?userId=${userId}`, {
+    const res = await authFetch('/v1/couples/invites/sent', {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to cancel');
     setSentInvite(null);
-  }, [userId]);
+  }, []);
 
   const acceptInvite = useCallback(async (inviteId: string) => {
-    const res = await fetch(`${API_URL}/v1/couples/invites/${inviteId}/accept?userId=${userId}`, {
+    const res = await authFetch(`/v1/couples/invites/${inviteId}/accept`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to accept');
     const data = await res.json();
-    await fetchStatus();
     return data as { coupleId: string };
-  }, [userId, fetchStatus]);
+  }, []);
 
   const declineInvite = useCallback(async (inviteId: string) => {
-    const res = await fetch(`${API_URL}/v1/couples/invites/${inviteId}/decline?userId=${userId}`, {
+    const res = await authFetch(`/v1/couples/invites/${inviteId}/decline`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to decline');
     setReceivedInvites((prev) => prev.filter((i) => i.id !== inviteId));
-  }, [userId]);
+  }, []);
 
   const searchUser = useCallback(async (email: string) => {
-    const res = await fetch(`${API_URL}/v1/users/search?email=${encodeURIComponent(email)}`);
+    const res = await authFetch(`/v1/users/search?email=${encodeURIComponent(email)}`);
     if (!res.ok) throw new Error('Search failed');
     return (await res.json()) as { found: boolean; user: InviteUser | null };
   }, []);
 
-  const refetch = useCallback(async () => {
-    await fetchStatus();
-    await fetchInvites();
-  }, [fetchStatus, fetchInvites]);
-
   return {
-    status,
     sentInvite,
     receivedInvites,
     loading,
@@ -141,6 +109,6 @@ export function useCoupleInvite(userId: string) {
     acceptInvite,
     declineInvite,
     searchUser,
-    refetch,
+    refetch: fetchInvites,
   };
 }

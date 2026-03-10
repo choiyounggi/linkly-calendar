@@ -7,13 +7,14 @@ import PoiSearchInput from "./PoiSearchInput";
 import type { PoiResult } from "../../../hooks/usePoiSearch";
 import styles from "./SettingsTab.module.css";
 
-// TODO: Replace with actual auth context
-const COUPLE_ID = "seed_couple_1_id";
-const USER_ID = "seed_user_1_id";
+interface SettingsTabProps {
+  coupleId: string;
+  onBreakUp?: () => void;
+}
 
-export default function SettingsTab() {
-  const { couple, loading: coupleLoading, updateCouple, breakUp } = useCouple(COUPLE_ID, USER_ID);
-  const { profile, loading: profileLoading, updateProfile } = useUserProfile(USER_ID);
+export default function SettingsTab({ coupleId, onBreakUp }: SettingsTabProps) {
+  const { couple, loading: coupleLoading, updateCouple, breakUp } = useCouple(coupleId);
+  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
 
   const [showBreakUpConfirm, setShowBreakUpConfirm] = useState(false);
   const [breakingUp, setBreakingUp] = useState(false);
@@ -33,8 +34,7 @@ export default function SettingsTab() {
     setBreakingUp(true);
     try {
       await breakUp();
-      // TODO: redirect to couple registration screen
-      window.location.href = "/";
+      onBreakUp?.();
     } catch (error) {
       console.error("Break up failed:", error);
       setBreakingUp(false);

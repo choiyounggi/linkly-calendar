@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authFetch } from '../lib/api';
 
 export interface CoupleRouteData {
   type: 'meetup' | 'individual';
@@ -16,19 +15,19 @@ export interface CoupleRouteData {
   cachedAt: string;
 }
 
-export function useCoupleRoute(eventId: string | null, userId: string) {
+export function useCoupleRoute(eventId: string | null) {
   const [route, setRoute] = useState<CoupleRouteData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRoute = useCallback(async (forceRefresh = false) => {
-    if (!eventId || !userId) return;
+    if (!eventId) return;
     setLoading(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { eventId, userId };
+      const body: Record<string, unknown> = { eventId };
       if (forceRefresh) body.forceRefresh = true;
-      const res = await fetch(`${API_URL}/v1/transit/couple-route`, {
+      const res = await authFetch('/v1/transit/couple-route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -45,7 +44,7 @@ export function useCoupleRoute(eventId: string | null, userId: string) {
     } finally {
       setLoading(false);
     }
-  }, [eventId, userId]);
+  }, [eventId]);
 
   useEffect(() => {
     if (eventId) fetchRoute();

@@ -1,8 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { UpdateCoupleDto } from './dto/update-couple.dto';
 import { SendInviteDto } from './dto/send-invite.dto';
 import { CoupleService } from './couple.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('v1/couples')
 export class CoupleController {
   constructor(private readonly coupleService: CoupleService) {}
@@ -12,7 +15,7 @@ export class CoupleController {
   @Get(':id')
   async findCoupleInfo(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @CurrentUser('id') userId: string,
   ) {
     return this.coupleService.findCoupleInfo(id, userId);
   }
@@ -20,7 +23,7 @@ export class CoupleController {
   @Patch(':id')
   async updateCouple(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @CurrentUser('id') userId: string,
     @Body() body: UpdateCoupleDto,
   ) {
     return this.coupleService.updateCouple(id, userId, body);
@@ -29,7 +32,7 @@ export class CoupleController {
   @Delete(':id')
   async breakUp(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @CurrentUser('id') userId: string,
   ) {
     await this.coupleService.breakUp(id, userId);
   }
@@ -37,24 +40,27 @@ export class CoupleController {
   /* ── 초대 ── */
 
   @Post('invites')
-  async sendInvite(@Body() body: SendInviteDto) {
-    return this.coupleService.sendInvite(body);
+  async sendInvite(
+    @CurrentUser('id') userId: string,
+    @Body() body: Omit<SendInviteDto, 'userId'>,
+  ) {
+    return this.coupleService.sendInvite({ ...body, userId } as SendInviteDto);
   }
 
   @Get('invites/sent')
-  async getSentInvite(@Query('userId') userId: string) {
+  async getSentInvite(@CurrentUser('id') userId: string) {
     return this.coupleService.getSentInvite(userId);
   }
 
   @Get('invites/received')
-  async getReceivedInvites(@Query('userId') userId: string) {
+  async getReceivedInvites(@CurrentUser('id') userId: string) {
     return this.coupleService.getReceivedInvites(userId);
   }
 
   @Post('invites/:id/accept')
   async acceptInvite(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @CurrentUser('id') userId: string,
   ) {
     return this.coupleService.acceptInvite(id, userId);
   }
@@ -62,13 +68,13 @@ export class CoupleController {
   @Post('invites/:id/decline')
   async declineInvite(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @CurrentUser('id') userId: string,
   ) {
     await this.coupleService.declineInvite(id, userId);
   }
 
   @Delete('invites/sent')
-  async cancelInvite(@Query('userId') userId: string) {
+  async cancelInvite(@CurrentUser('id') userId: string) {
     await this.coupleService.cancelInvite(userId);
   }
 }

@@ -3,7 +3,9 @@ import { Transform } from 'class-transformer';
 
 export class PhotoQueryDto {
   @IsString() @IsNotEmpty() coupleId!: string;
-  @IsString() @IsNotEmpty() userId!: string;
+
+  // userId is injected from JWT in the controller
+  userId?: string;
 
   /** cursor-based pagination: pass the last photo's id */
   @IsOptional() @IsString() cursor?: string;

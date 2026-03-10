@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authFetch, authUpload } from '../lib/api';
 
 export interface PhotoData {
   id: string;
@@ -15,7 +14,7 @@ export interface PhotoData {
 
 const PAGE_SIZE = 36;
 
-export function usePhotos(coupleId: string, userId: string) {
+export function usePhotos(coupleId: string) {
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -23,12 +22,12 @@ export function usePhotos(coupleId: string, userId: string) {
   const initialLoadDone = useRef(false);
 
   const fetchPhotos = useCallback(async (cursor?: string) => {
-    if (!coupleId || !userId) return;
+    if (!coupleId) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ coupleId, userId, take: String(PAGE_SIZE) });
+      const params = new URLSearchParams({ coupleId, take: String(PAGE_SIZE) });
       if (cursor) params.set('cursor', cursor);
-      const res = await fetch(`${API_URL}/v1/photos?${params}`);
+      const res = await authFetch(`/v1/photos?${params}`);
       if (!res.ok) throw new Error('Failed to fetch photos');
       const data = (await res.json()) as PhotoData[];
 
@@ -50,16 +49,16 @@ export function usePhotos(coupleId: string, userId: string) {
     } finally {
       setLoading(false);
     }
-  }, [coupleId, userId]);
+  }, [coupleId]);
 
   useEffect(() => {
-    if (coupleId && userId && !initialLoadDone.current) {
+    if (coupleId && !initialLoadDone.current) {
       initialLoadDone.current = true;
       cursorRef.current = null;
       setHasMore(true);
       fetchPhotos();
     }
-  }, [coupleId, userId, fetchPhotos]);
+  }, [coupleId, fetchPhotos]);
 
   const loadMore = useCallback(() => {
     if (loading || !hasMore || !cursorRef.current) return;
@@ -67,44 +66,40 @@ export function usePhotos(coupleId: string, userId: string) {
   }, [loading, hasMore, fetchPhotos]);
 
   const uploadPhotos = useCallback(async (files: File[]) => {
-    if (!coupleId || !userId || files.length === 0) return [];
+    if (!coupleId || files.length === 0) return [];
 
     const formData = new FormData();
     formData.append('coupleId', coupleId);
-    formData.append('userId', userId);
     for (const file of files) {
       formData.append('files', file);
     }
 
-    const res = await fetch(`${API_URL}/v1/photos`, {
-      method: 'POST',
-      body: formData,
-    });
+    const res = await authUpload('/v1/photos', formData);
     if (!res.ok) throw new Error('Failed to upload photos');
     const uploaded = (await res.json()) as PhotoData[];
     setPhotos((prev) => [...uploaded, ...prev]);
     return uploaded;
-  }, [coupleId, userId]);
+  }, [coupleId]);
 
   const deletePhoto = useCallback(async (photoId: string) => {
-    const res = await fetch(`${API_URL}/v1/photos/${photoId}?userId=${userId}`, {
+    const res = await authFetch(`/v1/photos/${photoId}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete photo');
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
-  }, [userId]);
+  }, []);
 
   const deletePhotos = useCallback(async (photoIds: string[]) => {
     if (photoIds.length === 0) return;
-    const res = await fetch(`${API_URL}/v1/photos`, {
+    const res = await authFetch('/v1/photos', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: photoIds, userId }),
+      body: JSON.stringify({ ids: photoIds }),
     });
     if (!res.ok) throw new Error('Failed to delete photos');
     const idSet = new Set(photoIds);
     setPhotos((prev) => prev.filter((p) => !idSet.has(p.id)));
-  }, [userId]);
+  }, []);
 
   const refetch = useCallback(() => {
     cursorRef.current = null;

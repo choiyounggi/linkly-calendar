@@ -12,6 +12,7 @@ import { EventModule } from './event/event.module';
 import { CoupleModule } from './couple/couple.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
 
 const envCandidates = [
   path.resolve(process.cwd(), '.env.local'),
@@ -34,6 +35,7 @@ const envFilePath = envCandidates.filter((candidate) => existsSync(candidate));
         { name: 'medium', ttl: 60_000, limit: 100 },
       ],
     }),
+    AuthModule,
     TransitModule,
     ChatModule,
     EventModule,

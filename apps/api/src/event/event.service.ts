@@ -31,7 +31,7 @@ export class EventService {
     });
   }
 
-  async findByMonth(query: EventQueryDto) {
+  async findByMonth(query: EventQueryDto & { userId: string }) {
     await this.ensureCoupleMember(query.coupleId, query.userId);
     const where: Record<string, unknown> = { coupleId: query.coupleId };
     if (query.month) {

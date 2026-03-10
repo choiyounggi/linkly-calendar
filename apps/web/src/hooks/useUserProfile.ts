@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authFetch } from '../lib/api';
 
 export interface UserProfile {
   id: string;
@@ -14,15 +13,14 @@ export interface UserProfile {
   homeUpdatedAt: string | null;
 }
 
-export function useUserProfile(userId: string) {
+export function useUserProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchProfile = useCallback(async () => {
-    if (!userId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/v1/users/me?userId=${userId}`);
+      const res = await authFetch('/v1/users/me');
       if (!res.ok) throw new Error('Failed to fetch profile');
       const data = (await res.json()) as UserProfile;
       setProfile(data);
@@ -31,14 +29,14 @@ export function useUserProfile(userId: string) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
   const updateProfile = useCallback(async (body: Record<string, unknown>) => {
-    const res = await fetch(`${API_URL}/v1/users/me?userId=${userId}`, {
+    const res = await authFetch('/v1/users/me', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -47,7 +45,7 @@ export function useUserProfile(userId: string) {
     const updated = (await res.json()) as UserProfile;
     setProfile(updated);
     return updated;
-  }, [userId]);
+  }, []);
 
   return { profile, loading, updateProfile, refetch: fetchProfile };
 }

@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { CoupleRouteService } from './couple-route.service';
 import { CoupleRouteDto } from './dto/couple-route.dto';
 import { DeparturesComputeDto } from './dto/departures-compute.dto';
@@ -6,6 +8,7 @@ import { PoiSearchDto } from './dto/poi-search.dto';
 import { RouteComputeDto } from './dto/route-compute.dto';
 import { TransitService } from './transit.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('v1/transit')
 export class TransitController {
   constructor(
@@ -31,7 +34,7 @@ export class TransitController {
   }
 
   @Post('couple-route')
-  async coupleRoute(@Body() body: CoupleRouteDto) {
-    return this.coupleRouteService.analyze(body.eventId, body.userId, body.forceRefresh ?? false);
+  async coupleRoute(@CurrentUser('id') userId: string, @Body() body: CoupleRouteDto) {
+    return this.coupleRouteService.analyze(body.eventId, userId, body.forceRefresh ?? false);
   }
 }

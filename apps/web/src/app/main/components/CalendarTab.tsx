@@ -13,15 +13,15 @@ import RouteSummary from "./RouteSummary";
 import RouteDetail from "./RouteDetail";
 import styles from "./CalendarTab.module.css";
 
-// TODO: Replace with actual auth context
-const COUPLE_ID = "seed_couple_1_id";
-const USER_ID = "seed_user_1_id";
-
 type ModalView = "closed" | "list" | "create" | "edit";
 
-export default function CalendarTab() {
+interface CalendarTabProps {
+  coupleId: string;
+}
+
+export default function CalendarTab({ coupleId }: CalendarTabProps) {
   const { events, setCurrentMonth, createEvent, updateEvent, deleteEvent } =
-    useEvents(COUPLE_ID, USER_ID);
+    useEvents(coupleId);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventData | null>(null);
@@ -32,7 +32,7 @@ export default function CalendarTab() {
   const hasLocation = Boolean(selectedEvent?.placeLat && selectedEvent?.placeLng);
   const routeEventId = modalView === "edit" && hasLocation ? selectedEvent?.id ?? null : null;
   const { route, loading: routeLoading, error: routeError, refresh: refreshRoute } =
-    useCoupleRoute(routeEventId, USER_ID);
+    useCoupleRoute(routeEventId);
 
   // 선택된 날짜의 이벤트 목록
   const dayEvents = useMemo(() => {

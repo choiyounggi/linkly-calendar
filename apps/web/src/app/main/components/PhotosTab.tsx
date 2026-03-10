@@ -7,13 +7,13 @@ import styles from "./PhotosTab.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-// TODO: Replace with actual auth context
-const COUPLE_ID = "seed_couple_1_id";
-const USER_ID = "seed_user_1_id";
+interface PhotosTabProps {
+  coupleId: string;
+}
 
-export default function PhotosTab() {
+export default function PhotosTab({ coupleId }: PhotosTabProps) {
   const { photos, loading, hasMore, loadMore, uploadPhotos, deletePhotos } =
-    usePhotos(COUPLE_ID, USER_ID);
+    usePhotos(coupleId);
 
   const [activePhoto, setActivePhoto] = useState<PhotoData | null>(null);
   const [selectMode, setSelectMode] = useState(false);

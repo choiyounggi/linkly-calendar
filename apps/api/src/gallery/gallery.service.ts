@@ -56,7 +56,7 @@ export class GalleryService {
     return results;
   }
 
-  async findMany(query: PhotoQueryDto) {
+  async findMany(query: PhotoQueryDto & { userId: string }) {
     await this.ensureCoupleMember(query.coupleId, query.userId);
 
     const take = query.take ?? DEFAULT_PAGE_SIZE;
