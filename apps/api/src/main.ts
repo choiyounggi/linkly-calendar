@@ -1,5 +1,8 @@
+import { existsSync, mkdirSync } from 'fs';
+import path from 'path';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -15,9 +18,20 @@ function parseCorsOrigins(): string[] | true {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.use(helmet());
+  // Serve uploaded photos as static files
+  const uploadsDir = path.resolve(process.cwd(), '../../uploads/photos');
+  if (!existsSync(uploadsDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.useStaticAssets(uploadsDir, { prefix: '/uploads/photos' });
+
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   const corsOrigin = parseCorsOrigins();
   app.enableCors({

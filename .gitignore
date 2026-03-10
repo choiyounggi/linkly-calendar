@@ -30,6 +30,9 @@ npm-debug.log
 yarn-error.log
 pnpm-debug.log
 
+# Uploads
+uploads/
+
 # Env
 .env
 .env.local
