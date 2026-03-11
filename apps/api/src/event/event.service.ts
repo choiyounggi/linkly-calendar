@@ -14,8 +14,8 @@ export class EventService {
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
   ) {}
 
-  async create(dto: CreateEventDto) {
-    await this.ensureCoupleMember(dto.coupleId, dto.createdByUserId);
+  async create(dto: CreateEventDto, userId: string) {
+    await this.ensureCoupleMember(dto.coupleId, userId);
     return this.prisma.calendarEvent.create({
       data: {
         coupleId: dto.coupleId,
@@ -26,7 +26,7 @@ export class EventService {
         placeLng: dto.placeLng,
         appointmentAt: dto.appointmentAt ? new Date(dto.appointmentAt) : null,
         detail: dto.detail,
-        createdByUserId: dto.createdByUserId,
+        createdByUserId: userId,
       },
     });
   }

@@ -9,5 +9,4 @@ export class CreateEventDto {
   @IsOptional() @IsNumber() placeLng?: number;
   @IsOptional() @IsDateString() appointmentAt?: string;
   @IsOptional() @IsString() detail?: string;
-  @IsString() @IsNotEmpty() createdByUserId!: string;
 }

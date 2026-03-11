@@ -13,7 +13,7 @@ export class EventController {
 
   @Post()
   async create(@CurrentUser('id') userId: string, @Body() body: CreateEventDto) {
-    return this.eventService.create({ ...body, createdByUserId: userId });
+    return this.eventService.create(body, userId);
   }
 
   @Get()
