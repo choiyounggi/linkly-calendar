@@ -1,14 +1,90 @@
-.container { padding: 12px; }
-.backBtn { background: none; border: none; cursor: pointer; font-size: 14px; color: #333; padding: 4px 0; margin-bottom: 12px; }
-.backBtn:hover { color: #000; }
-.steps { display: flex; flex-direction: column; gap: 0; }
-.step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
-.step:last-child { border-bottom: none; }
-.indicator { width: 4px; border-radius: 2px; flex-shrink: 0; }
-.content { flex: 1; }
-.modeRow { display: flex; justify-content: space-between; align-items: center; }
-.mode { font-size: 14px; font-weight: 600; }
-.time { font-size: 13px; color: #666; }
-.station { font-size: 13px; color: #444; margin-top: 2px; }
-.meetupBadge { margin-top: 6px; padding: 6px 10px; background: #fce4ec; border-radius: 6px; font-size: 12px; color: #c62828; font-weight: 500; }
-.partnerTime { margin-left: 4px; font-weight: 400; }
+/* ─── Container ─── */
+.container {
+  padding: 16px;
+}
+
+/* ─── Back Button ─── */
+.backBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+  margin-bottom: 12px;
+  transition: color var(--transition-fast);
+}
+
+.backBtn:hover {
+  color: var(--color-primary);
+}
+
+/* ─── Steps List ─── */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.step:last-child {
+  border-bottom: none;
+}
+
+/* Left color indicator */
+.indicator {
+  width: 4px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Step content */
+.content {
+  flex: 1;
+}
+
+.modeRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mode {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.time {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.station {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+/* ─── Meetup Badge ─── */
+.meetupBadge {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--color-danger-light);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
+.partnerTime {
+  margin-left: 4px;
+  font-weight: 400;
+}

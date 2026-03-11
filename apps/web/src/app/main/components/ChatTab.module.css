@@ -12,47 +12,48 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #f5f5f5;
-  color: #555555;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 600;
   align-self: flex-start;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .connectionDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #bdbdbd;
+  background: var(--color-text-tertiary);
 }
 
 .connectionStatus[data-status="connected"] {
-  background: #e8f7ee;
-  color: #1f7a3f;
+  background: var(--color-success-light);
+  color: #166534;
 }
 
 .connectionStatus[data-status="connected"] .connectionDot {
-  background: #2ecc71;
+  background: var(--color-success);
 }
 
 .connectionStatus[data-status="reconnecting"] {
-  background: #fff3e0;
-  color: #a06000;
+  background: var(--color-warning-light);
+  color: #92400e;
 }
 
 .connectionStatus[data-status="reconnecting"] .connectionDot {
-  background: #f5a623;
+  background: var(--color-warning);
 }
 
 .connectionStatus[data-status="offline"] {
-  background: #fdecea;
-  color: #b00020;
+  background: var(--color-danger-light);
+  color: #991b1b;
 }
 
 .connectionStatus[data-status="offline"] .connectionDot {
-  background: #e74c3c;
+  background: var(--color-danger);
 }
 
 .messageList {
@@ -61,10 +62,10 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 8px 4px;
   padding-bottom: calc(
-    var(--input-bar-height, 0px) + var(--footer-height, 0px) +
+    var(--input-bar-height, 0px) + var(--footer-height, 64px) +
       var(--keyboard-inset, 0px) + 12px
   );
 }
@@ -85,27 +86,27 @@
 .messageBubble {
   max-width: min(75%, 520px);
   padding: 10px 14px;
-  border-radius: 18px;
+  border-radius: 16px;
   font-size: 14px;
-  line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  line-height: 1.5;
+  box-shadow: none;
 }
 
 .messageBubblePartner {
-  background: #f0f0f0;
-  color: #333333;
-  border-top-left-radius: 6px;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+  border-top-left-radius: 4px;
 }
 
 .messageBubbleMine {
-  background: #fff2a6;
-  color: #1a1a1a;
-  border-top-right-radius: 6px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border-top-right-radius: 4px;
 }
 
 .messageImage {
   max-width: 100%;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: block;
 }
 
@@ -113,17 +114,17 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--footer-height, 0px) + var(--keyboard-inset, 0px));
+  bottom: calc(var(--footer-height, 64px) + var(--keyboard-inset, 0px));
   width: 100%;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px var(--content-padding, 24px);
-  background: #ffffff;
-  border: 1px solid #eeeeee;
-  border-radius: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  gap: 10px;
+  padding: 10px var(--content-padding, 24px);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
   transition: bottom 0.2s ease-out;
   will-change: bottom;
   z-index: 10;
@@ -133,13 +134,20 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid #f0f0f0;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  color: var(--color-text-secondary);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.iconButton:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-text-tertiary);
 }
 
 .input {
@@ -147,26 +155,31 @@
   border: none;
   outline: none;
   font-size: 14px;
-  background: #ffffff;
-  color: #111111;
+  background: transparent;
+  color: var(--color-text);
 }
 
 .input::placeholder {
-  color: #9a9a9a;
+  color: var(--color-text-tertiary);
 }
 
 .sendButton {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   border: none;
-  background: #ffd400;
+  background: var(--color-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #222222;
-  box-shadow: 0 6px 12px rgba(255, 212, 0, 0.3);
+  color: #ffffff;
+  box-shadow: none;
+  transition: background var(--transition-fast);
+}
+
+.sendButton:hover {
+  background: var(--color-primary-dark);
 }
 
 .icon {
@@ -177,6 +190,6 @@
 .sendFailed {
   display: block;
   font-size: 11px;
-  color: #e74c3c;
+  color: var(--color-danger);
   margin-top: 4px;
 }

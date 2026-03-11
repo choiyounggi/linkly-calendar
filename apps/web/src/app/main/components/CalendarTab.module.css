@@ -1,3 +1,4 @@
+/* ─── Calendar Tab Layout ─── */
 .calendarTab {
   width: 100%;
   max-width: 960px;
@@ -10,25 +11,30 @@
   z-index: 0;
 }
 
+/* ─── Calendar Card ─── */
 .calendarCard {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-light);
 }
 
+/* ─── Selected Day Cell ─── */
 .selectedDay {
-  background: #fff4b8;
+  background: var(--color-primary-light) !important;
 }
 
+/* ─── FullCalendar Base ─── */
 .calendarCard :global(.fc) {
-  font-family: inherit;
-  color: #222222;
+  font-family: var(--font-sans);
+  color: var(--color-text);
 }
 
+/* Scrollgrid container */
 .calendarCard :global(.fc .fc-scrollgrid) {
-  border: 1px solid #efefef;
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -37,56 +43,105 @@
   border-collapse: collapse;
 }
 
+/* Header + day cell borders */
 .calendarCard :global(.fc .fc-col-header-cell),
 .calendarCard :global(.fc .fc-daygrid-day) {
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--color-border-light);
 }
 
+/* Day cell frame sizing */
 .calendarCard :global(.fc .fc-daygrid-day-frame) {
   min-height: 90px;
   padding: 8px 8px 6px;
 }
 
+/* Day numbers */
 .calendarCard :global(.fc .fc-daygrid-day-number) {
   font-size: 12px;
-  color: #6b6b6b;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 4px 6px;
 }
 
+/* ─── Toolbar ─── */
 .calendarCard :global(.fc .fc-toolbar-title) {
   font-size: 18px;
   font-weight: 700;
+  color: var(--color-text);
 }
 
+.calendarCard :global(.fc .fc-toolbar) {
+  margin-bottom: 12px !important;
+}
+
+/* Toolbar buttons */
 .calendarCard :global(.fc .fc-button) {
-  background: #ffd400;
-  border: none;
-  color: #222222;
-  font-weight: 600;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm) !important;
+  transition: all var(--transition-fast);
+}
+
+.calendarCard :global(.fc .fc-button:hover) {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.calendarCard :global(.fc .fc-button:focus) {
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+  outline: none;
 }
 
 .calendarCard :global(.fc .fc-button:disabled) {
-  opacity: 0.6;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .calendarCard :global(.fc .fc-button-primary:not(:disabled).fc-button-active) {
-  background: #f5c400;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* Header day-of-week labels */
+.calendarCard :global(.fc .fc-col-header-cell) {
+  background: var(--color-bg-secondary);
 }
 
 .calendarCard :global(.fc .fc-col-header-cell-cushion) {
-  color: #f5b400;
-  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 0;
 }
 
+/* ─── Today Highlight ─── */
 .calendarCard :global(.fc .fc-day-today) {
-  background: #fff9d6;
+  background: var(--color-primary-light);
 }
 
+/* ─── Event Chips ─── */
 .calendarCard :global(.fc-daygrid-event) {
-  background: #ffe36a;
+  background: var(--color-primary);
   border: none;
-  color: #1c1c1c;
-  border-radius: 6px;
-  padding: 2px 6px;
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  transition: opacity var(--transition-fast);
+}
+
+.calendarCard :global(.fc-daygrid-event:hover) {
+  opacity: 0.85;
 }
 
 .calendarCard :global(.fc-daygrid-event .fc-event-title) {
@@ -95,27 +150,55 @@
   white-space: nowrap;
 }
 
-/* Day Events List Modal */
+/* ─── More events link ─── */
+.calendarCard :global(.fc .fc-daygrid-more-link) {
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ─── Day Events List Modal (Overlay) ─── */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   z-index: 1000;
+  animation: fadeIn var(--transition-normal) ease-out;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Day modal card */
 .dayModal {
   width: min(420px, 100%);
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  animation: slideUp var(--transition-normal) ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dayModalHeader {
@@ -127,7 +210,7 @@
 .dayModalTitle {
   font-size: 16px;
   font-weight: 700;
-  color: #f4b700;
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -135,16 +218,20 @@
   background: none;
   border: none;
   font-size: 20px;
-  color: #999;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   padding: 4px 8px;
   line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
 
 .dayModalClose:hover {
-  color: #333;
+  color: var(--color-text);
+  background: var(--color-bg-tertiary);
 }
 
+/* Event list */
 .eventList {
   display: flex;
   flex-direction: column;
@@ -156,53 +243,56 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  background: #fafafa;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, border-color 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .eventCard:hover {
-  background: #fff9d6;
-  border-color: #ffd400;
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .eventCardTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #1c1c1c;
+  color: var(--color-text);
 }
 
 .eventCardMeta {
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-secondary);
 }
 
+/* New event button */
 .newEventBtn {
-  border: 1px dashed #ddd;
-  border-radius: 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
   padding: 12px;
   background: transparent;
-  color: #888;
+  color: var(--color-text-tertiary);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .newEventBtn:hover {
-  color: #f4b700;
-  border-color: #ffd400;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 /* Route status */
 .routeStatus {
   padding: 12px;
   font-size: 13px;
-  color: #888;
+  color: var(--color-text-secondary);
   text-align: center;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
 }

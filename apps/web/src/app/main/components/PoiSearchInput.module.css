@@ -1,57 +1,97 @@
+/* ─── Container ─── */
 .container {
   position: relative;
   width: 100%;
 }
 
+/* ─── Input ─── */
 .input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.input:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* ─── Dropdown ─── */
 .dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   max-height: 240px;
   overflow-y: auto;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 0 0 6px 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
   list-style: none;
-  padding: 0;
+  padding: 4px;
   margin: 0;
   z-index: 100;
 }
 
+/* Scrollbar */
+.dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+/* ─── Item ─── */
 .item {
   padding: 10px 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
 .item:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-secondary);
 }
 
 .name {
   font-size: 14px;
   font-weight: 500;
+  color: var(--color-text);
 }
 
 .address {
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-secondary);
 }
 
+/* ─── Loading ─── */
 .loading {
   padding: 10px 12px;
-  color: #888;
+  color: var(--color-text-tertiary);
   font-size: 13px;
 }

@@ -4,17 +4,18 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: #fff7b0;
-  font-family: var(--font-geist-sans, "Inter", sans-serif);
+  background: var(--color-bg-secondary);
+  font-family: var(--font-sans);
 }
 
 .card {
   width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 24px;
+  max-width: 400px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
   padding: 40px 32px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -25,38 +26,42 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .logo {
-  width: 120px;
-  height: 120px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
+  margin-bottom: 4px;
 }
 
 .title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  color: #1f1f1f;
+  color: var(--color-text);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 15px;
-  color: #6b6b6b;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .buttons {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .button {
   height: 48px;
-  border-radius: 14px;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -64,35 +69,74 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
+  transition: opacity var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.button:hover {
+  opacity: 0.92;
 }
 
 .button:active {
   transform: translateY(1px);
 }
 
+/* Kakao - keep brand color */
 .kakao {
   background: #fee500;
   color: #3c1e1e;
 }
 
-.google {
-  background: #ffffff;
-  color: #1f1f1f;
-  border: 1px solid #e5e5e5;
+.kakao:hover {
+  background: #fdd800;
 }
 
+/* Google */
+.google {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.google:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* Naver - keep brand color */
 .naver {
   background: #03c75a;
   color: #ffffff;
 }
 
+.naver:hover {
+  background: #02b350;
+}
+
+/* ─── Responsive ─── */
 @media (max-width: 480px) {
+  .page {
+    padding: 16px;
+  }
+
   .card {
     padding: 32px 24px;
+    gap: 28px;
   }
 
   .title {
-    font-size: 24px;
+    font-size: 22px;
+  }
+
+  .logo {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+@media (min-width: 768px) {
+  .card {
+    max-width: 420px;
+    padding: 48px 40px;
   }
 }

@@ -1,12 +1,93 @@
-.container { padding: 12px; background: #f8f9fa; border-radius: 8px; margin-top: 12px; }
-.summary { display: flex; flex-direction: column; gap: 6px; }
-.row { display: flex; justify-content: space-between; font-size: 14px; }
-.label { color: #666; }
-.value { font-weight: 500; }
-.meetup { font-size: 13px; color: #e91e63; font-weight: 500; margin-top: 4px; }
-.noOverlap { font-size: 13px; color: #888; margin-top: 4px; }
-.actions { display: flex; gap: 8px; margin-top: 10px; }
-.detailBtn { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
-.detailBtn:hover { background: #f0f0f0; }
-.refreshBtn { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
-.refreshBtn:hover { background: #f0f0f0; }
+/* ─── Container ─── */
+.container {
+  padding: 16px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+  margin-top: 12px;
+}
+
+/* ─── Summary Grid ─── */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.label {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.value {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ─── Meetup Info ─── */
+.meetup {
+  font-size: 13px;
+  color: var(--color-danger);
+  font-weight: 500;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--color-danger-light);
+  border-radius: var(--radius-sm);
+}
+
+.noOverlap {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* ─── Action Buttons ─── */
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.detailBtn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.detailBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.refreshBtn {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.refreshBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}

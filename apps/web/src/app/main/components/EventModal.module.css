@@ -1,27 +1,64 @@
+/* ─── Overlay ─── */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   z-index: 1000;
+  animation: fadeIn var(--transition-normal) ease-out;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Modal Container ─── */
 .modal {
   width: min(480px, 100%);
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 20px 20px 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  animation: slideUp var(--transition-normal) ease-out;
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth scrollbar */
+.modal::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+/* ─── Header ─── */
 .header {
   display: flex;
   flex-direction: column;
@@ -32,20 +69,21 @@
   font-size: 16px;
   font-weight: 700;
   margin: 0;
-  color: #1c1c1c;
+  color: var(--color-text);
 }
 
 .date {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #f4b700;
+  color: var(--color-primary);
   margin: 0;
 }
 
+/* ─── Body / Fields ─── */
 .body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .field {
@@ -54,89 +92,138 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #333333;
+  color: var(--color-text);
 }
 
 .field input,
 .field textarea {
-  border: 1px solid #e5e5e5;
-  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
-  font-size: 13px;
-  background: #fafafa;
-  color: #1c1c1c;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.field input:hover,
+.field textarea:hover {
+  border-color: var(--color-text-tertiary);
 }
 
 .field input:focus,
 .field textarea:focus {
   outline: none;
-  border-color: #ffd400;
-  box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .field input::placeholder,
 .field textarea::placeholder {
-  color: #b0b0b0;
+  color: var(--color-text-tertiary);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .helper {
-  font-size: 11px;
-  font-weight: 500;
-  color: #8a8a8a;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
 }
 
+/* ─── Route Section ─── */
+.routeSection {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 12px;
+}
+
+/* ─── Footer ─── */
 .footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   padding-top: 4px;
+  border-top: 1px solid var(--color-border-light);
 }
 
+/* Shared button base */
 .closeButton,
 .primaryButton,
 .dangerButton {
   border: none;
-  padding: 9px 18px;
-  border-radius: 999px;
-  font-weight: 700;
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
+/* Cancel / Close button */
 .closeButton {
-  background: #f2f2f2;
-  color: #4a4a4a;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
 }
 
+.closeButton:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+/* Primary action */
 .primaryButton {
-  background: #ffd400;
-  color: #1c1c1c;
-  box-shadow: 0 8px 16px rgba(255, 212, 0, 0.25);
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }
 
+.primaryButton:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+/* Danger action */
 .dangerButton {
-  background: #ff5b5b;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.dangerButton:hover {
+  background: var(--color-danger);
   color: #ffffff;
 }
 
-.closeButton:hover,
-.primaryButton:hover,
-.dangerButton:hover {
-  transform: translateY(-1px);
-}
-
+/* Disabled state */
 .primaryButton:disabled,
 .closeButton:disabled,
 .dangerButton:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
   box-shadow: none;
+  transform: none;
 }
 
-.routeSection {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 8px;
+/* ─── Responsive ─── */
+@media (max-width: 520px) {
+  .modal {
+    padding: 20px 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .footer {
+    flex-direction: column-reverse;
+  }
+
+  .closeButton,
+  .primaryButton,
+  .dangerButton {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
 }
