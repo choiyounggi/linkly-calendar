@@ -16,8 +16,8 @@ export class ChatSendDto {
   @IsNotEmpty()
   coupleId!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   senderUserId!: string;
 
   @IsEnum(ChatMessageKind)

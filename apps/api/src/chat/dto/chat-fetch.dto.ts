@@ -13,8 +13,8 @@ export class ChatFetchQueryDto {
   @IsNotEmpty()
   coupleId!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   userId!: string;
 
   @IsOptional()

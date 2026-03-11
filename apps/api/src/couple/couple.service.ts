@@ -6,10 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import { existsSync, unlinkSync } from 'fs';
+import path from 'path';
 import { CoupleStatus, CoupleMemberRole, InviteStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateCoupleDto } from './dto/update-couple.dto';
 import { SendInviteDto } from './dto/send-invite.dto';
+
+const UPLOAD_DIR = path.resolve(process.cwd(), '../../uploads/photos');
 
 @Injectable()
 export class CoupleService {
@@ -109,6 +113,21 @@ export class CoupleService {
 
   async breakUp(coupleId: string, userId: string) {
     await this.ensureCoupleMember(coupleId, userId);
+
+    // Delete gallery photo files from disk before cascade delete
+    const photos = await this.prisma.galleryPhoto.findMany({
+      where: { coupleId },
+      select: { url: true },
+    });
+    for (const photo of photos) {
+      const filePath = path.join(UPLOAD_DIR, path.basename(photo.url));
+      try {
+        if (existsSync(filePath)) unlinkSync(filePath);
+      } catch (error) {
+        this.logger.error(`Failed to delete file: ${filePath}`, error);
+      }
+    }
+
     await this.prisma.couple.delete({ where: { id: coupleId } });
     this.logger.log(`Couple ${coupleId} broken up by user ${userId}`);
   }

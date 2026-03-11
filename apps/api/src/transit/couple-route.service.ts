@@ -165,8 +165,8 @@ export class CoupleRouteService {
     return `${y}${m}${d}${h}${min}`;
   }
 
-  private calculateDepartureTime(appointmentAt: Date, totalTimeMinutes: number): string {
-    return new Date(appointmentAt.getTime() - totalTimeMinutes * 60_000).toISOString();
+  private calculateDepartureTime(appointmentAt: Date, totalTimeSeconds: number): string {
+    return new Date(appointmentAt.getTime() - totalTimeSeconds * 1_000).toISOString();
   }
 
   private extractBestItinerary(routeData: unknown): { totalTime: number; totalWalkTime: number; transferCount: number; legs: Record<string, unknown>[] } {

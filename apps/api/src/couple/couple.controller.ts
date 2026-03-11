@@ -10,33 +10,6 @@ import { CoupleService } from './couple.service';
 export class CoupleController {
   constructor(private readonly coupleService: CoupleService) {}
 
-  /* ── 커플 정보 ── */
-
-  @Get(':id')
-  async findCoupleInfo(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ) {
-    return this.coupleService.findCoupleInfo(id, userId);
-  }
-
-  @Patch(':id')
-  async updateCouple(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-    @Body() body: UpdateCoupleDto,
-  ) {
-    return this.coupleService.updateCouple(id, userId, body);
-  }
-
-  @Delete(':id')
-  async breakUp(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ) {
-    await this.coupleService.breakUp(id, userId);
-  }
-
   /* ── 초대 ── */
 
   @Post('invites')
@@ -76,5 +49,32 @@ export class CoupleController {
   @Delete('invites/sent')
   async cancelInvite(@CurrentUser('id') userId: string) {
     await this.coupleService.cancelInvite(userId);
+  }
+
+  /* ── 커플 정보 ── */
+
+  @Get(':id')
+  async findCoupleInfo(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.coupleService.findCoupleInfo(id, userId);
+  }
+
+  @Patch(':id')
+  async updateCouple(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body() body: UpdateCoupleDto,
+  ) {
+    return this.coupleService.updateCouple(id, userId, body);
+  }
+
+  @Delete(':id')
+  async breakUp(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    await this.coupleService.breakUp(id, userId);
   }
 }

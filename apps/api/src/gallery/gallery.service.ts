@@ -109,8 +109,13 @@ export class GalleryService {
 
     if (photos.length === 0) return;
 
-    // Verify membership using the first photo's coupleId
-    await this.ensureCoupleMember(photos[0].coupleId, userId);
+    // Verify all photos belong to the same couple
+    const expectedCoupleId = photos[0].coupleId;
+    if (photos.some((p) => p.coupleId !== expectedCoupleId)) {
+      throw new ForbiddenException('All photos must belong to the same couple.');
+    }
+
+    await this.ensureCoupleMember(expectedCoupleId, userId);
 
     // Delete files on disk
     for (const photo of photos) {

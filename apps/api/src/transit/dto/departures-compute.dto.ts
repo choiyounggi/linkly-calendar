@@ -1,26 +1,33 @@
 import {
   IsInt,
-  IsNotEmptyObject,
-  IsObject,
+  IsNumber,
   IsOptional,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
-type LocationPayload = Record<string, unknown>;
+class LocationDto {
+  @IsNumber()
+  lat!: number;
+
+  @IsNumber()
+  lon!: number;
+}
 
 export class DeparturesComputeDto {
-  @IsObject()
-  @IsNotEmptyObject()
-  originA!: LocationPayload;
+  @ValidateNested()
+  @Type(() => LocationDto)
+  originA!: LocationDto;
 
-  @IsObject()
-  @IsNotEmptyObject()
-  originB!: LocationPayload;
+  @ValidateNested()
+  @Type(() => LocationDto)
+  originB!: LocationDto;
 
-  @IsObject()
-  @IsNotEmptyObject()
-  destination!: LocationPayload;
+  @ValidateNested()
+  @Type(() => LocationDto)
+  destination!: LocationDto;
 
   @IsOptional()
   @IsString()

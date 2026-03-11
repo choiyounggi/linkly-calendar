@@ -7,6 +7,7 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
+import { JwtService } from '@nestjs/jwt';
 import type { DefaultEventsMap, Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { ChatFetchQueryDto } from './dto/chat-fetch.dto';
@@ -62,15 +63,31 @@ export class ChatGateway {
   private readonly disconnectReasonOverrides = new Map<string, string>();
   private readonly disconnectMetrics = new Map<string, number>();
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async handleConnection(client: ChatSocket) {
-    const { coupleId, userId } = this.readHandshake(client);
+    const { coupleId, userId, token } = this.readHandshake(client);
 
-    if (!coupleId || !userId) {
+    if (!coupleId || !userId || !token) {
       client.emit(CHAT_EVENTS.error, {
-        message: 'Missing coupleId or userId in websocket handshake.',
+        message: 'Missing coupleId, userId, or token in websocket handshake.',
       });
+      client.disconnect(true);
+      return;
+    }
+
+    try {
+      const payload = this.jwtService.verify<{ sub: string }>(token);
+      if (payload.sub !== userId) {
+        client.emit(CHAT_EVENTS.error, { message: 'Token userId mismatch.' });
+        client.disconnect(true);
+        return;
+      }
+    } catch {
+      client.emit(CHAT_EVENTS.error, { message: 'Invalid or expired token.' });
       client.disconnect(true);
       return;
     }
@@ -167,8 +184,9 @@ export class ChatGateway {
 
     const coupleId = this.coerceString(auth.coupleId ?? query.coupleId);
     const userId = this.coerceString(auth.userId ?? query.userId);
+    const token = this.coerceString(auth.token ?? query.token);
 
-    return { coupleId, userId };
+    return { coupleId, userId, token };
   }
 
   private coerceString(value: unknown) {

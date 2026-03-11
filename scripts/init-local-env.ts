@@ -25,6 +25,13 @@ if (!existing.trim() && existsSync(examplePath)) {
     `CHAT_ENCRYPTION_KEYS=1:${key}`,
   );
 
+  // JWT_SECRET을 실제 랜덤 값으로 치환
+  const jwtSecret = randomBytes(48).toString('base64');
+  content = content.replace(
+    /JWT_SECRET=.*/,
+    `JWT_SECRET=${jwtSecret}`,
+  );
+
   writeFileSync(envPath, content.trim() + '\n');
   console.log(`✅ .env.local 생성 완료: ${envPath}`);
 } else {
@@ -51,6 +58,15 @@ if (!existing.trim() && existsSync(examplePath)) {
     content += `CHAT_ENCRYPTION_KEYS=1:${key}\nCHAT_ENCRYPTION_KEY_VERSION=1\n`;
   }
 
+  if (!hasKey('JWT_SECRET') || /JWT_SECRET=CHANGE_ME/.test(content)) {
+    const jwtSecret = randomBytes(48).toString('base64');
+    if (hasKey('JWT_SECRET')) {
+      content = content.replace(/JWT_SECRET=.*/, `JWT_SECRET=${jwtSecret}`);
+    } else {
+      content += `JWT_SECRET=${jwtSecret}\n`;
+    }
+  }
+
   // .env.example에서 누락된 키를 자동 보충
   if (existsSync(examplePath)) {
     const example = readFileSync(examplePath, 'utf8');
@@ -61,6 +77,7 @@ if (!existing.trim() && existsSync(examplePath)) {
       'CACHE_BUCKET_MINUTES', 'CACHE_TTL_SECONDS_MIN', 'CACHE_TTL_SECONDS_MAX',
       'CHAT_WS_PING_INTERVAL_MS', 'CHAT_WS_PONG_TIMEOUT_MS',
       'CORS_ORIGINS',
+      'JWT_EXPIRES_IN',
     ];
     for (const mk of missingKeys) {
       if (!hasKey(mk)) {

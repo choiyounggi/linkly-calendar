@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { authFetch } from '../lib/api';
 
 export interface PoiResult {
   name: string;
@@ -7,7 +8,6 @@ export interface PoiResult {
   lng: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const DEBOUNCE_MS = 300;
 
 export function usePoiSearch() {
@@ -34,7 +34,7 @@ export function usePoiSearch() {
 
       try {
         const params = new URLSearchParams({ keyword: keyword.trim() });
-        const res = await fetch(`${API_URL}/v1/transit/poi/search?${params}`, {
+        const res = await authFetch(`/v1/transit/poi/search?${params}`, {
           signal: controller.signal,
         });
         if (!res.ok) throw new Error('POI search failed');

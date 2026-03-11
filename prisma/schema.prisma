@@ -133,6 +133,7 @@ model CalendarEvent {
   routeCaches RouteCache[]
 
   @@index([coupleId])
+  @@index([coupleId, appointmentAt])
   @@index([createdByUserId])
 }
 

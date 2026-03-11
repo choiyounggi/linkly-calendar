@@ -89,6 +89,9 @@ async function main() {
         displayName: "링클리",
         email: "linkly.one@example.com",
         avatarUrl: "https://i.pravatar.cc/150?img=32",
+        homeLat: 37.5563,
+        homeLng: 126.9237,
+        homeAddress: "서울 마포구 와우산로 94",
       },
       create: {
         displayName: "링클리",
@@ -96,6 +99,9 @@ async function main() {
         avatarUrl: "https://i.pravatar.cc/150?img=32",
         authProvider: AuthProvider.LOCAL,
         providerUserId: "seed_user_1",
+        homeLat: 37.5563,
+        homeLng: 126.9237,
+        homeAddress: "서울 마포구 와우산로 94",
       },
     }),
     prisma.user.upsert({
@@ -109,6 +115,9 @@ async function main() {
         displayName: "캘린",
         email: "linkly.two@example.com",
         avatarUrl: "https://i.pravatar.cc/150?img=47",
+        homeLat: 37.5045,
+        homeLng: 127.0490,
+        homeAddress: "서울 강남구 선릉로 지하 396",
       },
       create: {
         displayName: "캘린",
@@ -116,6 +125,9 @@ async function main() {
         avatarUrl: "https://i.pravatar.cc/150?img=47",
         authProvider: AuthProvider.LOCAL,
         providerUserId: "seed_user_2",
+        homeLat: 37.5045,
+        homeLng: 127.0490,
+        homeAddress: "서울 강남구 선릉로 지하 396",
       },
     }),
   ]);
@@ -263,6 +275,49 @@ async function main() {
           url: "https://picsum.photos/seed/linkly-gallery-2/1000/750",
           thumbnailUrl: "https://picsum.photos/seed/linkly-gallery-2/320/240",
           caption: "우리의 추억",
+        },
+      ],
+    });
+  }
+
+  const existingEvents = await prisma.calendarEvent.count({
+    where: { coupleId },
+  });
+
+  if (existingEvents === 0) {
+    const now = new Date();
+
+    await prisma.calendarEvent.createMany({
+      data: [
+        {
+          coupleId,
+          createdByUserId: user1.id,
+          title: "카페에서 만남",
+          placeName: "스타벅스 강남역점",
+          placeAddress: "서울 강남구 강남대로 390",
+          placeLat: 37.4979,
+          placeLng: 127.0276,
+          appointmentAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+        },
+        {
+          coupleId,
+          createdByUserId: user2.id,
+          title: "영화 보기",
+          placeName: "CGV 용산아이파크몰",
+          placeAddress: "서울 용산구 한강대로23길 55",
+          placeLat: 37.5298,
+          placeLng: 126.9654,
+          appointmentAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        },
+        {
+          coupleId,
+          createdByUserId: user1.id,
+          title: "기념일 디너",
+          placeName: "라미띠에",
+          placeAddress: "서울 강남구 선릉로158길 7",
+          placeLat: 37.5244,
+          placeLng: 127.0400,
+          appointmentAt: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
         },
       ],
     });

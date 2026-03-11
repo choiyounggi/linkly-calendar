@@ -75,6 +75,7 @@ export class EventService {
 
   async remove(id: string, userId: string) {
     await this.findById(id, userId);
+    await this.invalidateRouteCaches(id);
     await this.prisma.calendarEvent.delete({ where: { id } });
   }
 

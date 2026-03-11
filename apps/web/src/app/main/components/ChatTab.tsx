@@ -13,6 +13,7 @@ import { Plus, Send } from "lucide-react";
 import { io } from "socket.io-client";
 import { CHAT_NAMESPACE, CHAT_EVENTS } from "@linkly/shared";
 import { useAuth } from "../../../context/AuthContext";
+import { authFetch } from "../../../lib/api";
 import styles from "./ChatTab.module.css";
 
 type ChatMessage = {
@@ -223,10 +224,9 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
       try {
         const params = new URLSearchParams({
           coupleId,
-          userId,
           limit: String(INITIAL_BATCH + LOAD_BATCH),
         });
-        const response = await fetch(`${chatApiUrl}?${params.toString()}`, {
+        const response = await authFetch(`/chat/messages?${params.toString()}`, {
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -265,9 +265,10 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
   useEffect(() => {
     if (!coupleId || !userId) return;
     isUnmountingRef.current = false;
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
     const socket = io(chatSocketUrl, {
       transports: ["websocket"],
-      auth: { coupleId, userId },
+      auth: { coupleId, userId, token },
       reconnection: false,
       autoConnect: true,
     });
@@ -406,11 +407,10 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
     try {
       const params = new URLSearchParams({
         coupleId,
-        userId,
         limit: String(LOAD_BATCH),
         beforeMs: String(oldest.sentAtMs),
       });
-      const response = await fetch(`${chatApiUrl}?${params.toString()}`);
+      const response = await authFetch(`/chat/messages?${params.toString()}`);
       if (!response.ok) {
         isPrependingRef.current = false;
         return;
@@ -532,12 +532,11 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
       }, true);
 
       try {
-        const response = await fetch(chatApiUrl, {
+        const response = await authFetch("/chat/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             coupleId,
-            senderUserId: userId,
             kind,
             text,
             imageUrl,

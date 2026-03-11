@@ -99,12 +99,14 @@ export class TransitService {
   async computeRoute(payload: RouteComputeDto): Promise<unknown> {
     const { origin, destination, arrivalTime, bucketMinutes } = payload;
     const tmapPayload: TransitRequestPayload = {
-      origin,
-      destination,
+      startX: String(origin.lon),
+      startY: String(origin.lat),
+      endX: String(destination.lon),
+      endY: String(destination.lat),
     };
 
     if (arrivalTime) {
-      tmapPayload.reqDttm = arrivalTime;
+      tmapPayload.searchDttm = arrivalTime;
     }
 
     return this.fetchWithCache('route', tmapPayload, {
@@ -116,20 +118,34 @@ export class TransitService {
   async computeDepartures(payload: DeparturesComputeDto): Promise<unknown> {
     const { originA, originB, destination, arrivalTime, bucketMinutes } =
       payload;
-    const tmapPayload: TransitRequestPayload = {
-      originA,
-      originB,
-      destination,
+
+    const tmapPayloadA: TransitRequestPayload = {
+      startX: String(originA.lon),
+      startY: String(originA.lat),
+      endX: String(destination.lon),
+      endY: String(destination.lat),
+    };
+
+    const tmapPayloadB: TransitRequestPayload = {
+      startX: String(originB.lon),
+      startY: String(originB.lat),
+      endX: String(destination.lon),
+      endY: String(destination.lat),
     };
 
     if (arrivalTime) {
-      tmapPayload.reqDttm = arrivalTime;
+      tmapPayloadA.searchDttm = arrivalTime;
+      tmapPayloadB.searchDttm = arrivalTime;
     }
 
-    return this.fetchWithCache('departures', tmapPayload, {
-      arrivalTime,
-      bucketMinutes,
-    });
+    const extraKeyData = { arrivalTime, bucketMinutes };
+
+    const [routeA, routeB] = await Promise.all([
+      this.fetchWithCache('departures:A', tmapPayloadA, extraKeyData),
+      this.fetchWithCache('departures:B', tmapPayloadB, extraKeyData),
+    ]);
+
+    return { routeA, routeB };
   }
 
   private async fetchWithCache(
@@ -253,7 +269,7 @@ export class TransitService {
     payload: TransitRequestPayload,
     extraKeyData: TransitRequestPayload,
   ) {
-    const candidates = [payload.reqDttm, extraKeyData.arrivalTime];
+    const candidates = [payload.searchDttm, extraKeyData.arrivalTime];
 
     for (const candidate of candidates) {
       if (typeof candidate === 'string') {
@@ -298,7 +314,7 @@ export class TransitService {
       bucketMinutes: number;
     },
   ) {
-    const keyPayload = this.omitKeys(payload, ['reqDttm']);
+    const keyPayload = this.omitKeys(payload, ['searchDttm']);
     const keyExtra = this.omitKeys(extraKeyData, ['arrivalTime']);
     const raw = this.stableStringify({
       payload: keyPayload,
