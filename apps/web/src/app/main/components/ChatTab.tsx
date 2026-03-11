@@ -109,25 +109,24 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
   );
 
   const appendMessage = useCallback((nextMessage: ChatMessage, isOptimistic = false) => {
-    setAllMessages((prev) => {
-      if (seenMessageIdsRef.current.has(nextMessage.id)) {
-        return prev;
-      }
+    if (seenMessageIdsRef.current.has(nextMessage.id)) {
+      return;
+    }
 
-      seenMessageIdsRef.current.add(nextMessage.id);
-      lastActivityRef.current = Date.now();
-      if (
-        !isOptimistic &&
-        (!lastSeenMessageRef.current ||
-          nextMessage.sentAtMs >= lastSeenMessageRef.current.sentAtMs)
-      ) {
-        lastSeenMessageRef.current = {
-          id: nextMessage.id,
-          sentAtMs: nextMessage.sentAtMs,
-        };
-      }
-      return [...prev, nextMessage];
-    });
+    seenMessageIdsRef.current.add(nextMessage.id);
+    lastActivityRef.current = Date.now();
+    if (
+      !isOptimistic &&
+      (!lastSeenMessageRef.current ||
+        nextMessage.sentAtMs >= lastSeenMessageRef.current.sentAtMs)
+    ) {
+      lastSeenMessageRef.current = {
+        id: nextMessage.id,
+        sentAtMs: nextMessage.sentAtMs,
+      };
+    }
+
+    setAllMessages((prev) => [...prev, nextMessage]);
   }, []);
 
   const mapApiMessage = useCallback(
@@ -426,13 +425,15 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
       }
 
       if (mapped.length > 0) {
-        setAllMessages((prev) => {
-          const newMessages = mapped.filter(
-            (m) => !seenMessageIdsRef.current.has(m.id)
-          );
-          newMessages.forEach((m) => seenMessageIdsRef.current.add(m.id));
-          return [...newMessages, ...prev];
-        });
+        const newMessages = mapped.filter(
+          (m) => !seenMessageIdsRef.current.has(m.id)
+        );
+        newMessages.forEach((m) => seenMessageIdsRef.current.add(m.id));
+        if (newMessages.length > 0) {
+          setAllMessages((prev) => [...newMessages, ...prev]);
+        } else {
+          isPrependingRef.current = false;
+        }
       } else {
         isPrependingRef.current = false;
       }
