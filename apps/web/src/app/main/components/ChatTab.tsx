@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import { Plus, Send } from "lucide-react";
 import { io } from "socket.io-client";
@@ -46,7 +45,6 @@ const RECONNECT_JITTER = 0.2;
 const INITIAL_BATCH = 30;
 const LOAD_BATCH = 20;
 const SCROLL_THRESHOLD = 80;
-const STICKY_BOTTOM_THRESHOLD = 32;
 
 interface ChatTabProps {
   coupleId: string;
@@ -63,12 +61,9 @@ const createClientMessageId = () => {
 export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
-  const [keyboardInset, setKeyboardInset] = useState(0);
-  const [inputBarHeight, setInputBarHeight] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "reconnecting" | "offline"
   >("connecting");
-  const inputBarRef = useRef<HTMLDivElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,7 +75,6 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
   const isPrependingRef = useRef(false);
   const isFetchingOlderRef = useRef(false);
   const hasMoreServerRef = useRef(true);
-  const shouldStickToBottomRef = useRef(true);
   const previousScrollHeightRef = useRef<number | null>(null);
   const previousMessageCountRef = useRef(0);
   const hasInitialScrollRef = useRef(false);
@@ -356,42 +350,6 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
     scheduleReconnect,
   ]);
 
-  useLayoutEffect(() => {
-    const inputBar = inputBarRef.current;
-    if (!inputBar) return;
-
-    const updateHeight = () => {
-      setInputBarHeight(inputBar.getBoundingClientRect().height);
-    };
-
-    updateHeight();
-
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(inputBar);
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!window.visualViewport) return;
-
-    const viewport = window.visualViewport;
-    const updateInset = () => {
-      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setKeyboardInset(inset);
-    };
-
-    updateInset();
-
-    viewport.addEventListener("resize", updateInset);
-    viewport.addEventListener("scroll", updateInset);
-
-    return () => {
-      viewport.removeEventListener("resize", updateInset);
-      viewport.removeEventListener("scroll", updateInset);
-    };
-  }, []);
-
   const fetchOlderFromServer = useCallback(async () => {
     if (!coupleId || !userId || !hasMoreServerRef.current || isFetchingOlderRef.current) return;
 
@@ -460,25 +418,14 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
     }
   }, [startIndex, fetchOlderFromServer]);
 
-  const updateStickiness = useCallback(() => {
-    const list = messageListRef.current;
-    if (!list) return;
-
-    const distanceFromBottom =
-      list.scrollHeight - list.scrollTop - list.clientHeight;
-    shouldStickToBottomRef.current = distanceFromBottom <= STICKY_BOTTOM_THRESHOLD;
-  }, []);
-
   const handleScroll = useCallback(() => {
     const list = messageListRef.current;
     if (!list) return;
 
-    updateStickiness();
-
     if (list.scrollTop <= SCROLL_THRESHOLD) {
       loadOlderMessages();
     }
-  }, [loadOlderMessages, updateStickiness]);
+  }, [loadOlderMessages]);
 
   useLayoutEffect(() => {
     const list = messageListRef.current;
@@ -499,8 +446,7 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
     if (!hasInitialScrollRef.current) {
       list.scrollTop = list.scrollHeight;
       hasInitialScrollRef.current = true;
-      shouldStickToBottomRef.current = true;
-    } else if (didAppend && shouldStickToBottomRef.current) {
+    } else if (didAppend) {
       list.scrollTop = list.scrollHeight;
     }
 
@@ -520,8 +466,6 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
       if (!coupleId || !userId) return;
       const clientMessageId = createClientMessageId();
       const sentAtMs = Date.now();
-
-      shouldStickToBottomRef.current = true;
 
       appendMessage({
         id: clientMessageId,
@@ -602,15 +546,7 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
   }, [connectionStatus]);
 
   return (
-    <div
-      className={styles.chatTab}
-      style={
-        {
-          "--input-bar-height": `${inputBarHeight}px`,
-          "--keyboard-inset": `${keyboardInset}px`,
-        } as CSSProperties
-      }
-    >
+    <div className={styles.chatTab}>
       <div className={styles.connectionStatus} data-status={connectionStatus}>
         <span className={styles.connectionDot} />
         {connectionLabel}
@@ -649,7 +585,7 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
         ))}
       </div>
 
-      <div className={styles.inputBar} ref={inputBarRef}>
+      <div className={styles.inputBar}>
         <button
           type="button"
           className={styles.iconButton}
