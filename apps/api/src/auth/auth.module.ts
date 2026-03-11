@@ -10,6 +10,15 @@ import { KakaoStrategy } from './strategies/kakao.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { NaverStrategy } from './strategies/naver.strategy';
 
+/** Register OAuth strategies only when their client IDs are configured. */
+function buildOAuthProviders(): any[] {
+  const providers: any[] = [];
+  if (process.env.KAKAO_CLIENT_ID) providers.push(KakaoStrategy);
+  if (process.env.GOOGLE_CLIENT_ID) providers.push(GoogleStrategy);
+  if (process.env.NAVER_CLIENT_ID) providers.push(NaverStrategy);
+  return providers;
+}
+
 @Module({
   imports: [
     PrismaModule,
@@ -26,7 +35,7 @@ import { NaverStrategy } from './strategies/naver.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, KakaoStrategy, GoogleStrategy, NaverStrategy],
+  providers: [AuthService, JwtStrategy, ...buildOAuthProviders()],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

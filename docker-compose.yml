@@ -7,7 +7,7 @@ services:
       - path: .env
         required: false
     ports:
-      - "5432:5432"
+      - "5437:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-linkly}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-linkly_local_password}
@@ -23,7 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data

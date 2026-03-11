@@ -52,6 +52,11 @@ export default function Home() {
           <a href={`${API_URL}/v1/auth/naver`} className={`${styles.button} ${styles.naver}`}>
             네이버 로그인
           </a>
+          {process.env.NODE_ENV === "development" && (
+            <a href={`${API_URL}/v1/auth/dev-login`} className={`${styles.button} ${styles.dev}`}>
+              Dev Login
+            </a>
+          )}
         </div>
       </main>
     </div>

@@ -113,6 +113,17 @@
   background: #02b350;
 }
 
+/* Dev login */
+.dev {
+  background: var(--color-text);
+  color: var(--color-bg);
+  margin-top: 8px;
+}
+
+.dev:hover {
+  opacity: 0.85;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 480px) {
   .page {

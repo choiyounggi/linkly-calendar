@@ -57,6 +57,25 @@ export class AuthController {
     return this.handleCallback(req, res);
   }
 
+  /* ── Dev Login (개발 전용) ── */
+
+  @Get('dev-login')
+  async devLogin(@Res() res: Response) {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    const user = await this.authService.validateOrCreateUser({
+      provider: 'LOCAL' as any,
+      providerUserId: 'seed_user_1',
+      email: 'linkly.one@example.com',
+      displayName: '링클리',
+      avatarUrl: 'https://i.pravatar.cc/150?img=32',
+    });
+    const token = this.authService.issueToken(user.id, user.authProvider);
+    const redirectUrl = `${this.frontendUrl}/auth/callback?token=${token}`;
+    return res.redirect(redirectUrl);
+  }
+
   /* ── 공통 콜백 처리 ── */
 
   private handleCallback(req: Request, res: Response) {
