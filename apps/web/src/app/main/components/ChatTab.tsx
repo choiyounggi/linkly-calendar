@@ -48,6 +48,7 @@ const SCROLL_THRESHOLD = 80;
 
 interface ChatTabProps {
   coupleId: string;
+  visible?: boolean;
 }
 
 const createClientMessageId = () => {
@@ -58,7 +59,7 @@ const createClientMessageId = () => {
   return `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
+export default function ChatTab({ coupleId: propCoupleId, visible = true }: ChatTabProps) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [connectionStatus, setConnectionStatus] = useState<
@@ -443,7 +444,7 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
     const previousCount = previousMessageCountRef.current;
     const didAppend = messageCount > previousCount && !isPrependingRef.current;
 
-    if (!hasInitialScrollRef.current) {
+    if (!hasInitialScrollRef.current && visible && list.clientHeight > 0 && messageCount > 0) {
       list.scrollTop = list.scrollHeight;
       hasInitialScrollRef.current = true;
     } else if (didAppend) {
@@ -451,7 +452,7 @@ export default function ChatTab({ coupleId: propCoupleId }: ChatTabProps) {
     }
 
     previousMessageCountRef.current = messageCount;
-  }, [startIndex, sortedMessages.length]);
+  }, [startIndex, sortedMessages.length, visible]);
 
   const sendChatMessage = useCallback(
     async ({

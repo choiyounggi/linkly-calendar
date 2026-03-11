@@ -102,7 +102,7 @@ export default function MainPage() {
           <CalendarTab coupleId={status.coupleId!} />
         </div>
         <div style={{ display: activeTab === "chat" ? "contents" : "none" }}>
-          <ChatTab coupleId={status.coupleId!} />
+          <ChatTab coupleId={status.coupleId!} visible={activeTab === "chat"} />
         </div>
         {activeTab === "photos" && <PhotosTab coupleId={status.coupleId!} />}
         {activeTab === "settings" && (
